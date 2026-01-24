@@ -1,0 +1,63 @@
+# lastgenie - Cursor Rules
+
+## Project Overview
+I am creating an Ecommerce website for brand name Genie. Its a sexual enhancer drink designed for male and female. 
+Product information:
+Male sexual enhancer - 50ML bottle (1 sku) - 10$
+Female sexual enhancer - 50ML bottle (1sku) - 10$
+Users can also buy it in 12 pack of each - $99
+
+## Tech Stack
+- Frontend: Next.js with Tailwind CSS
+- Backend: Express on Node.js
+- Database: SQLite with Prisma ORM
+- Deployment: aws amplify
+
+## Coding Standards
+- Use TypeScript for all files
+- Follow ESLint and Prettier configurations
+- Write comprehensive JSDoc comments for functions
+- Use meaningful variable and function names
+- Prefer functional components with hooks
+
+## File Structure
+- `/client` - Frontend React application
+- `/server` - Backend API and services
+- `/shared` - Shared types and schemas
+
+## Component Patterns
+- Use shadcn/ui components from `@/components/ui`
+- Follow atomic design principles
+- Keep components small and focused
+
+## API Conventions
+- RESTful endpoints under `/api`
+- Use Zod for request validation
+- Return consistent JSON response formats
+
+## Database Guidelines
+- Use Prisma ORM for all database operations
+- Define schemas in `server/prisma/schema.prisma`
+- Use Prisma migrations for schema changes (`npm run db:migrate`)
+- Development database: SQLite (`server/dev.db`)
+- Seed database with `npm run db:seed`
+- Never use `db:push` in production - always use migrations
+
+
+## Authentication
+- Methods: email with JWT tokens
+- Secure all protected routes with middleware
+- JWT tokens stored in HTTP-only cookies
+- Role-based authorization (customer, admin, super_admin)
+
+
+
+## Realtime Features
+- Technology: null
+- Handle connection state gracefully
+
+
+## Testing
+- Write unit tests for utility functions
+- Use integration tests for API endpoints
+- Test components with React Testing Library

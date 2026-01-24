@@ -1,0 +1,1122 @@
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowRight, Minus, Plus, X, Loader2, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+import { useCart } from '@/lib/cart-context';
+import { useAffiliate } from '@/lib/affiliate-context';
+import { createLoginUrl } from '@/lib/redirect-utils';
+import { getShippingRates, validateAddress } from '@/lib/api/shipping';
+import { ShippingRate, ShippingAddress, AddressValidationResult, AddressType } from '@/types/cart';
+import { AddressConfirmationModal } from '@/components/ui/address-confirmation-modal';
+import { createCheckoutSession, cartItemsToCheckoutItems } from '@/lib/api/checkout';
+
+export default function CartPage() {
+  const router = useRouter();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const {
+    items: cartItems,
+    isLoading: cartLoading,
+    updateQuantity,
+    removeFromCart,
+    getCartTotal,
+  } = useCart();
+  const { referralCode } = useAffiliate();
+
+  const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
+    street1: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: 'US',
+  });
+  const [addressType, setAddressType] = useState<AddressType | ''>('');
+  const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
+  const [selectedShippingRate, setSelectedShippingRate] = useState<ShippingRate | null>(null);
+  const [isLoadingShipping, setIsLoadingShipping] = useState(false);
+  const [shippingError, setShippingError] = useState<string | null>(null);
+  const [addressValidation, setAddressValidation] = useState<AddressValidationResult | null>(null);
+  const [isValidatingAddress, setIsValidatingAddress] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isAddressValidated, setIsAddressValidated] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  // Helper function to check if two addresses are different
+  const addressesAreDifferent = (addr1: ShippingAddress, addr2: ShippingAddress): boolean => {
+    if (!addr1 || !addr2) return false;
+    
+    return (
+      (addr1.street1 || '').toLowerCase().trim() !== (addr2.street1 || '').toLowerCase().trim() ||
+      (addr1.street2 || '').toLowerCase().trim() !== (addr2.street2 || '').toLowerCase().trim() ||
+      (addr1.city || '').toLowerCase().trim() !== (addr2.city || '').toLowerCase().trim() ||
+      (addr1.state || '').toUpperCase().trim() !== (addr2.state || '').toUpperCase().trim() ||
+      (addr1.postalCode || '').trim() !== (addr2.postalCode || '').trim() ||
+      (addr1.country || 'US').toUpperCase().trim() !== (addr2.country || 'US').toUpperCase().trim()
+    );
+  };
+
+  // Helper function to check if address is complete
+  const isAddressComplete = (address: ShippingAddress): boolean => {
+    return !!(
+      address.street1?.trim() &&
+      address.city?.trim() &&
+      address.state?.trim() &&
+      address.postalCode?.trim() &&
+      address.country?.trim()
+    );
+  };
+
+  // Check age verification when user is authenticated
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && user && !user.isAgeVerified) {
+      router.push('/verify-age?return=' + encodeURIComponent('/cart'));
+    }
+  }, [authLoading, isAuthenticated, user, router]);
+
+  // Calculate totals
+  const subtotal = getCartTotal();
+  const shipping = selectedShippingRate ? parseFloat(selectedShippingRate.amount) : 0;
+  const tax = subtotal * 0.08; // 8% tax
+  const total = subtotal + shipping + tax;
+
+  // Fetch shipping rates function (memoized with useCallback)
+  const fetchShippingRates = useCallback(async (address: ShippingAddress) => {
+    if (cartItems.length === 0) {
+      return;
+    }
+
+    setIsLoadingShipping(true);
+    setShippingError(null);
+
+    try {
+      const response = await getShippingRates(
+        cartItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+        address
+      );
+
+      if (response.success && response.data) {
+        const rates = response.data.rates;
+        setShippingRates(rates);
+        // Select cheapest option by default
+        if (rates.length > 0) {
+          const cheapest = rates.find((r) => r.attributes?.includes('CHEAPEST')) || rates[0];
+          setSelectedShippingRate(cheapest);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error fetching shipping rates:', error);
+      
+      // Extract more specific error message if available
+      let errorMessage = 'Failed to calculate shipping. Using default rate.';
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.details && Array.isArray(error.details)) {
+        // Handle Zod validation errors
+        const validationErrors = error.details
+          .map((detail: any) => {
+            const path = detail.path?.join('.') || 'field';
+            return `${path}: ${detail.message}`;
+          })
+          .join(', ');
+        errorMessage = `Validation error: ${validationErrors}. Using default rate.`;
+      }
+      
+      setShippingError(errorMessage);
+      // Fallback to default shipping
+      setSelectedShippingRate({
+        id: 'default',
+        provider: 'USPS',
+        serviceName: 'Standard Shipping',
+        amount: '8.50',
+        currency: 'USD',
+        estimatedDays: '5-7',
+      });
+    } finally {
+      setIsLoadingShipping(false);
+    }
+  }, [cartItems]);
+
+  // Validate address when all required fields are filled
+  useEffect(() => {
+    // Check if all required fields are present
+    if (
+      !shippingAddress.street1 ||
+      !shippingAddress.city ||
+      !shippingAddress.state ||
+      !shippingAddress.postalCode
+    ) {
+      setAddressValidation(null);
+      setIsAddressValidated(false);
+      setShippingRates([]);
+      setSelectedShippingRate(null);
+      return;
+    }
+
+    // Debounce validation to avoid too many API calls
+    const timeoutId = setTimeout(async () => {
+      setIsValidatingAddress(true);
+      setValidationError(null);
+
+      try {
+        const response = await validateAddress(shippingAddress);
+
+        if (response.success && response.data) {
+          const validationResult = response.data;
+          setAddressValidation(validationResult);
+          
+          // Check if validation result indicates service unavailability
+          const hasServiceUnavailableMessage = validationResult.messages?.some((msg: string) =>
+            msg.toLowerCase().includes('unavailable') || 
+            msg.toLowerCase().includes('not configured') ||
+            msg.toLowerCase().includes('unexpected response')
+          );
+          
+          if (hasServiceUnavailableMessage) {
+            // Don't mark as validated when service is unavailable
+            setIsAddressValidated(false);
+            setValidationError('Address validation service is not configured. Please verify your address manually.');
+            // Still show modal so user can confirm their address
+            setShowAddressModal(true);
+            // Don't fetch shipping rates automatically - let user confirm first
+          } else {
+            setValidationError(null); // Clear any previous errors
+
+            // Show modal when validation completes
+            setShowAddressModal(true);
+
+            // Check if address type requires unit number
+            const addressTypeRequiresUnit = addressType && 
+              ['apartment', 'condo', 'residential_complex'].includes(addressType);
+            
+            // Check if validation result indicates unit number is required
+            const validationRequiresUnit = validationResult.requiresUnitNumber === true;
+            
+            // Check if validated address differs from original (correction available)
+            const hasCorrection = validationResult.validatedAddress && 
+              addressesAreDifferent(shippingAddress, validationResult.validatedAddress);
+
+            // Check if we have suggestions (prioritize suggestions over validation status)
+            const hasSuggestions = validationResult.suggestions && validationResult.suggestions.length > 0;
+            const hasLowConfidence = validationResult.confidence === 'low' || validationResult.confidence === 'medium';
+
+            // If unit number is required (by address type or validation) but none provided, don't mark as validated
+            // unless we have suggestions (which will include unit number variations)
+            if ((addressTypeRequiresUnit || validationRequiresUnit) && !shippingAddress.street2 && !hasSuggestions) {
+              setIsAddressValidated(false);
+              setShippingRates([]);
+              setSelectedShippingRate(null);
+              // Don't show modal if unit number is required - user should enter it in the form
+              if (!validationRequiresUnit) {
+                setShowAddressModal(true);
+              }
+              return;
+            }
+
+            // Prioritize suggestions: if we have suggestions or corrections, allow user to proceed
+            // Also allow if address is valid, or if invalid but we have a recommended address
+            if (hasSuggestions || hasCorrection || validationResult.isValid || 
+                (!validationResult.isValid && validationResult.validatedAddress)) {
+              setIsAddressValidated(true);
+              
+              // If there's a correction or suggestion, use validated address for shipping rates
+              // But don't update the form fields until user accepts
+              const addressToUse = (hasCorrection || hasSuggestions) && validationResult.validatedAddress
+                ? validationResult.validatedAddress 
+                : (validationResult.validatedAddress || shippingAddress);
+              // Fetch shipping rates with validated/corrected address
+              await fetchShippingRates(addressToUse);
+            } else {
+              // Only block if address is invalid AND we have no suggestions or corrections
+              setIsAddressValidated(false);
+              setShippingRates([]);
+              setSelectedShippingRate(null);
+            }
+          }
+        } else {
+          // Handle error responses from backend
+          if (response.error) {
+            if (response.error === 'Address validation service error') {
+              setValidationError('Address validation service is temporarily unavailable. Please verify your address manually.');
+              // Show fallback data if available
+              if (response.data) {
+                setAddressValidation(response.data);
+                setShowAddressModal(true);
+              }
+            } else if (response.error === 'Invalid address data') {
+              setValidationError('Please check your address format and try again.');
+            } else {
+              setValidationError(response.error);
+            }
+          } else {
+            setValidationError('Address validation service is temporarily unavailable. Please verify your address manually.');
+          }
+          setIsAddressValidated(false);
+          setShowAddressModal(true);
+          // Don't fetch shipping rates automatically when validation fails
+        }
+      } catch (error: any) {
+        console.error('Error validating address:', error);
+        // Show user-friendly error message
+        const errorMessage = error?.response?.error === 'Address validation service configuration error'
+          ? 'Address validation service is temporarily unavailable. You can still proceed with your order.'
+          : 'Address validation is temporarily unavailable. Please verify your address manually.';
+        setValidationError(errorMessage);
+        setIsAddressValidated(true); // Allow user to proceed
+        await fetchShippingRates(shippingAddress);
+      } finally {
+        setIsValidatingAddress(false);
+      }
+    }, 1000); // 1 second debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [shippingAddress.street1, shippingAddress.city, shippingAddress.state, shippingAddress.postalCode, shippingAddress.street2, addressType, cartItems, fetchShippingRates]);
+
+  // Handle accepting a suggested address
+  const handleAcceptSuggestedAddress = async (suggestedAddress: ShippingAddress) => {
+    // Preserve addressType if it exists, or use the one from suggestedAddress
+    setShippingAddress({
+      ...suggestedAddress,
+      addressType: suggestedAddress.addressType || addressType || undefined,
+    });
+    setAddressValidation(null);
+    setIsAddressValidated(false);
+    
+    // Re-validate the selected address to confirm it's correct
+    setIsValidatingAddress(true);
+    try {
+      const response = await validateAddress(suggestedAddress);
+      
+      if (response.success && response.data) {
+        const validationResult = response.data;
+        setAddressValidation(validationResult);
+        
+        // If validation is successful, mark as validated and fetch shipping rates
+        if (validationResult.isValid || (validationResult.suggestions && validationResult.suggestions.length === 0)) {
+          setIsAddressValidated(true);
+          await fetchShippingRates(suggestedAddress);
+        } else {
+          // If still has issues, show the validation result
+          setIsAddressValidated(false);
+        }
+      } else {
+        // If validation fails, still allow to proceed but mark as validated
+        setIsAddressValidated(true);
+        await fetchShippingRates(suggestedAddress);
+      }
+    } catch (error: any) {
+      console.error('Error re-validating address:', error);
+      // On error, allow to proceed
+      setIsAddressValidated(true);
+      await fetchShippingRates(suggestedAddress);
+    } finally {
+      setIsValidatingAddress(false);
+    }
+  };
+
+  const handleQuantityChange = async (itemId: string, newQuantity: number) => {
+    if (newQuantity < 1) {
+      await removeFromCart(itemId);
+    } else {
+      await updateQuantity(itemId, newQuantity);
+    }
+  };
+
+  const handleRemoveItem = async (itemId: string) => {
+    if (confirm('Are you sure you want to remove this item from your cart?')) {
+      await removeFromCart(itemId);
+    }
+  };
+
+  const handleCheckout = async () => {
+    // Check authentication first
+    if (!isAuthenticated) {
+      const checkoutLoginUrl = createLoginUrl('/cart', 'checkout');
+      router.push(checkoutLoginUrl);
+      return;
+    }
+
+    // Check age verification
+    if (!user?.isAgeVerified) {
+      router.push('/verify-age?return=' + encodeURIComponent('/cart'));
+      return;
+    }
+
+    setIsCheckingOut(true);
+    try {
+      const checkoutRequest = {
+        items: cartItemsToCheckoutItems(cartItems),
+        ...(referralCode && { referralCode })
+      };
+
+      const response = await createCheckoutSession(checkoutRequest);
+      
+      if (response.success && response.data?.url) {
+        // Redirect to Stripe checkout
+        window.location.href = response.data.url;
+      } else {
+        alert('Failed to create checkout session. Please try again.');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to proceed to checkout. Please try again.');
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
+
+  if (cartLoading || authLoading) {
+    return (
+      <div className="min-h-screen py-12 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen py-12">
+      <div className="container mx-auto px-4">
+        <h1 className="font-display text-3xl md:text-4xl font-bold text-text-primary mb-8">
+          Your Cart
+        </h1>
+
+        {cartItems.length === 0 ? (
+          // Empty cart state
+          <div className="text-center py-16">
+            <div className="w-24 h-24 bg-gray-100 rounded-full mx-auto mb-6 flex items-center justify-center">
+              <div className="w-12 h-12 border-2 border-gray-300 rounded-lg"></div>
+            </div>
+            <h2 className="font-display text-2xl font-bold text-text-primary mb-4">
+              Your cart is empty
+            </h2>
+            <p className="text-text-secondary mb-8">
+              Looks like you haven't added any items to your cart yet.
+            </p>
+            <Link
+              href="/shop"
+              className="bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors inline-flex items-center gap-2"
+            >
+              Start Shopping <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-3 gap-12">
+            {/* Cart Items */}
+            <div className="lg:col-span-2">
+              <div className="space-y-6">
+                {cartItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-surface border border-border-default rounded-xl p-6"
+                  >
+                    <div className="flex items-start gap-4">
+                      {/* Product Image */}
+                      <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <div className="w-8 h-8 bg-gradient-to-r from-genie-blue to-genie-pink rounded-full"></div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Product Details */}
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3 className="font-semibold text-text-primary">{item.name}</h3>
+                            {item.isSubscription && (
+                              <p className="text-sm text-secondary font-medium">
+                                Subscribe & Save (15% off)
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleRemoveItem(item.id)}
+                            className="text-text-secondary hover:text-error transition-colors"
+                            aria-label="Remove item"
+                          >
+                            <X className="h-5 w-5" />
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          {/* Quantity Controls */}
+                          <div className="flex items-center border border-border-default rounded-lg">
+                            <button
+                              onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                              className="p-2 hover:bg-background transition-colors"
+                              aria-label="Decrease quantity"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </button>
+                            <span className="px-4 py-2 border-x border-border-default min-w-[3rem] text-center">
+                              {item.quantity}
+                            </span>
+                            <button
+                              onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                              className="p-2 hover:bg-background transition-colors"
+                              aria-label="Increase quantity"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          {/* Price */}
+                          <div className="text-right">
+                            {item.isSubscription && item.subscriptionDiscount ? (
+                              <div>
+                                <p className="text-lg font-bold text-secondary">
+                                  $
+                                  {(
+                                    item.price *
+                                    (1 - item.subscriptionDiscount) *
+                                    item.quantity
+                                  ).toFixed(2)}
+                                </p>
+                                <p className="text-sm text-text-secondary line-through">
+                                  ${(item.price * item.quantity).toFixed(2)}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-lg font-bold text-text-primary">
+                                ${(item.price * item.quantity).toFixed(2)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Shipping Address Form (for shipping estimate) */}
+              {cartItems.length > 0 && (
+                <div className="mt-8 bg-surface border border-border-default rounded-xl p-6">
+                  <h3 className="font-semibold text-text-primary mb-4">
+                    Get Shipping Estimate
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-text-secondary mb-1">
+                        Address Type <span className="text-text-secondary">(optional)</span>
+                      </label>
+                      <select
+                        value={addressType}
+                        onChange={(e) => {
+                          const newType = e.target.value as AddressType | '';
+                          setAddressType(newType);
+                          setShippingAddress({ ...shippingAddress, addressType: newType || undefined });
+                        }}
+                        className="w-full px-3 py-2 border border-border-default rounded-lg bg-background text-text-primary"
+                      >
+                        <option value="">Select address type...</option>
+                        <option value="house">House (Single-family home)</option>
+                        <option value="apartment">Apartment</option>
+                        <option value="condo">Condo</option>
+                        <option value="townhouse">Townhouse</option>
+                        <option value="business">Business/Commercial</option>
+                        <option value="residential_complex">Residential Complex</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <p className="text-xs text-text-secondary mt-1">
+                        This helps us determine if a unit number is needed
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-text-secondary mb-1">
+                        Street Address
+                      </label>
+                      <input
+                        type="text"
+                        value={shippingAddress.street1}
+                        onChange={(e) =>
+                          setShippingAddress({ ...shippingAddress, street1: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-border-default rounded-lg bg-background text-text-primary"
+                        placeholder="123 Main St"
+                      />
+                      <p className="text-xs text-text-secondary mt-1">
+                        If you live in an apartment or suite, please include the unit number
+                      </p>
+                    </div>
+                    {(addressType && ['apartment', 'condo', 'residential_complex'].includes(addressType)) || 
+                     (addressValidation?.requiresUnitNumber) ||
+                     (shippingAddress.street2 && shippingAddress.street2.trim() !== '') ? (
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-text-secondary mb-1">
+                          Unit/Apt/Suite Number
+                          {addressValidation?.requiresUnitNumber && (
+                            <span className="text-red-500 ml-1">*</span>
+                          )}
+                        </label>
+                        <input
+                          type="text"
+                          value={shippingAddress.street2 || ''}
+                          onChange={(e) =>
+                            setShippingAddress({ ...shippingAddress, street2: e.target.value })
+                          }
+                          className={`w-full px-3 py-2 border rounded-lg bg-background text-text-primary ${
+                            addressValidation?.requiresUnitNumber && !shippingAddress.street2
+                              ? 'border-yellow-500 dark:border-yellow-600'
+                              : 'border-border-default'
+                          }`}
+                          placeholder="Apt 5, Unit 201, Suite 100"
+                        />
+                        {addressValidation?.requiresUnitNumber && !shippingAddress.street2 && (
+                          <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                            Required: Please enter your unit number to complete address validation.
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
+                    <div>
+                      <label className="block text-sm font-medium text-text-secondary mb-1">
+                        City
+                      </label>
+                      <input
+                        type="text"
+                        value={shippingAddress.city}
+                        onChange={(e) =>
+                          setShippingAddress({ ...shippingAddress, city: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-border-default rounded-lg bg-background text-text-primary"
+                        placeholder="Austin"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-text-secondary mb-1">
+                        State
+                      </label>
+                      <input
+                        type="text"
+                        value={shippingAddress.state}
+                        onChange={(e) =>
+                          setShippingAddress({ ...shippingAddress, state: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-border-default rounded-lg bg-background text-text-primary"
+                        placeholder="TX"
+                        maxLength={2}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-text-secondary mb-1">
+                        ZIP Code
+                      </label>
+                      <input
+                        type="text"
+                        value={shippingAddress.postalCode}
+                        onChange={(e) =>
+                          setShippingAddress({ ...shippingAddress, postalCode: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-border-default rounded-lg bg-background text-text-primary"
+                        placeholder="78701"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Unit Number Prompt */}
+                  {addressValidation?.requiresUnitNumber && !shippingAddress.street2 && !isValidatingAddress && (
+                    <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-1">
+                            Unit Number Required
+                          </p>
+                          <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                            {addressValidation.messages?.[0] || 'This address requires a unit, apartment, or suite number. Please enter it above.'}
+                          </p>
+                          {addressValidation.validatedAddress && (
+                            <div className="mt-2 pt-2 border-t border-yellow-300 dark:border-yellow-700">
+                              <p className="text-xs text-yellow-700 dark:text-yellow-300 font-medium mb-1">
+                                Standardized Address:
+                              </p>
+                              <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                                {addressValidation.validatedAddress.street1}
+                                <br />
+                                {addressValidation.validatedAddress.city}, {addressValidation.validatedAddress.state} {addressValidation.validatedAddress.postalCode}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Unit Number Prompt (for address type, when no validation yet) */}
+                  {!addressValidation?.requiresUnitNumber &&
+                   addressType && 
+                   ['apartment', 'condo', 'residential_complex'].includes(addressType) && 
+                   !shippingAddress.street2 && 
+                   !isValidatingAddress && 
+                   !addressValidation && (
+                    <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        Please enter your unit/apartment/suite number for accurate delivery.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Address Validation Status */}
+                  {isValidatingAddress && (
+                    <div className="mt-4 flex items-center gap-2 text-sm text-text-secondary">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Validating address...</span>
+                    </div>
+                  )}
+
+                  {/* Validation Results */}
+                  {!isValidatingAddress && addressValidation && (
+                    <div className="mt-4 space-y-3">
+                      {/* Corrected Address Available */}
+                      {addressValidation.validatedAddress && 
+                       addressesAreDifferent(shippingAddress, addressValidation.validatedAddress) && (
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                            <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                {addressValidation.confidence === 'exact' || addressValidation.confidence === 'high'
+                                  ? 'Address correction recommended'
+                                  : 'Address correction available'}
+                              </p>
+                              <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                                We found a corrected version of your address that may improve delivery accuracy:
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="p-4 bg-surface border border-border-default rounded-lg">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-text-primary mb-2">
+                                  Corrected Address:
+                                </p>
+                                <div className="text-sm text-text-secondary space-y-1">
+                                  <p>{addressValidation.validatedAddress.street1}</p>
+                                  {addressValidation.validatedAddress.street2 && (
+                                    <p>{addressValidation.validatedAddress.street2}</p>
+                                  )}
+                                  <p>
+                                    {addressValidation.validatedAddress.city}, {addressValidation.validatedAddress.state} {addressValidation.validatedAddress.postalCode}
+                                  </p>
+                                  {addressValidation.validatedAddress.country && (
+                                    <p>{addressValidation.validatedAddress.country}</p>
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleAcceptSuggestedAddress(addressValidation.validatedAddress!)}
+                                className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors whitespace-nowrap"
+                              >
+                                Accept Corrected Address
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Valid Address (only show if no correction available) */}
+                      {addressValidation.isValid && 
+                       !addressValidation.suggestions?.length && 
+                       (!addressValidation.validatedAddress || 
+                        !addressesAreDifferent(shippingAddress, addressValidation.validatedAddress)) && (
+                        <div className="flex items-start gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                              Address validated successfully
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Address Suggestions */}
+                      {addressValidation.suggestions && addressValidation.suggestions.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                            <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                {addressValidation.suggestions.length > 1
+                                  ? 'Multiple addresses found at this location'
+                                  : 'Address needs correction'}
+                              </p>
+                              <p className="text-xs text-yellow-600 dark:text-yellow-300 mt-1">
+                                {addressValidation.messages?.some(msg => 
+                                  msg.includes('Multiple addresses') || msg.includes('more information')
+                                ) ? (
+                                  <>
+                                    USPS found multiple addresses at this location. Please select your unit number from the list below:
+                                  </>
+                                ) : addressValidation.suggestions.length > 1 ? (
+                                  'Please select your unit number from the list below:'
+                                ) : (
+                                  'We found a suggested address that may be more accurate:'
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <div className={`space-y-2 ${addressValidation.suggestions.length > 5 ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+                            {addressValidation.suggestions.map((suggestion, index) => (
+                              <div
+                                key={index}
+                                className="p-4 bg-surface border border-border-default rounded-lg hover:border-primary/50 transition-colors"
+                              >
+                                <p className="text-sm font-medium text-text-primary mb-2">
+                                  {addressValidation.suggestions.length > 1
+                                    ? `Option ${index + 1}:`
+                                    : 'Suggested Address:'}
+                                </p>
+                                <div className="text-sm text-text-secondary space-y-1 mb-3">
+                                  <p className="font-medium text-text-primary">{suggestion.street1}</p>
+                                  {suggestion.street2 && (
+                                    <p className="text-primary font-medium">{suggestion.street2}</p>
+                                  )}
+                                  <p>
+                                    {suggestion.city}, {suggestion.state} {suggestion.postalCode}
+                                  </p>
+                                  {suggestion.country && <p>{suggestion.country}</p>}
+                                </div>
+                                <button
+                                  onClick={() => handleAcceptSuggestedAddress(suggestion)}
+                                  className="w-full bg-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+                                >
+                                  {addressValidation.suggestions.length > 1 ? 'Select This Address' : 'Use This Address'}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          {addressValidation.suggestions.length > 1 && (
+                            <div className="pt-2 border-t border-border-default">
+                              <button
+                                onClick={() => {
+                                  // Allow user to manually enter unit number
+                                  setAddressValidation(null);
+                                  setIsAddressValidated(false);
+                                }}
+                                className="w-full px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
+                              >
+                                None of these - I'll enter my unit number manually
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Invalid Address */}
+                      {!addressValidation.isValid && !addressValidation.suggestions?.length && (
+                        <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                              Invalid address
+                            </p>
+                            <p className="text-xs text-red-600 dark:text-red-300 mt-1">
+                              Please check your address and try again. The address may not be deliverable.
+                            </p>
+                            {addressValidation.messages && addressValidation.messages.length > 0 && (
+                              <ul className="mt-2 text-xs text-red-600 dark:text-red-300 list-disc list-inside">
+                                {addressValidation.messages.map((msg, idx) => (
+                                  <li key={idx}>{msg}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Validation Messages */}
+                      {addressValidation.messages && addressValidation.messages.length > 0 && addressValidation.isValid && (
+                        <div className="text-xs text-text-secondary space-y-1">
+                          {addressValidation.messages.map((msg, idx) => (
+                            <p key={idx}>{msg}</p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Validation Error */}
+                  {validationError && (
+                    <div className="mt-4 flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                          {validationError}
+                        </p>
+                        <p className="text-xs text-yellow-600 dark:text-yellow-300 mt-1">
+                          You can still proceed, but please verify your address manually.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Shipping Error */}
+                  {shippingError && (
+                    <p className="mt-2 text-sm text-error">{shippingError}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Shipping Options */}
+              {shippingRates.length > 0 && (
+                <div className="mt-6 bg-surface border border-border-default rounded-xl p-6">
+                  <h3 className="font-semibold text-text-primary mb-4">Shipping Options</h3>
+                  <div className="space-y-3">
+                    {shippingRates.map((rate) => (
+                      <label
+                        key={rate.id}
+                        className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+                          selectedShippingRate?.id === rate.id
+                            ? 'border-primary bg-primary/5 shadow-sm'
+                            : 'border-border-default hover:bg-background hover:shadow-sm'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="radio"
+                            name="shipping"
+                            value={rate.id}
+                            checked={selectedShippingRate?.id === rate.id}
+                            onChange={() => setSelectedShippingRate(rate)}
+                            className="text-primary w-4 h-4"
+                          />
+                          
+                          {/* Carrier Logo/Icon */}
+                          <div className="flex-shrink-0">
+                            {rate.provider === 'USPS' && (
+                              <div className="w-12 h-8 bg-blue-600 text-white text-xs font-bold flex items-center justify-center rounded">
+                                USPS
+                              </div>
+                            )}
+                            {rate.provider === 'FedEx' && (
+                              <div className="w-12 h-8 bg-purple-600 text-white text-xs font-bold flex items-center justify-center rounded">
+                                FedEx
+                              </div>
+                            )}
+                            {rate.provider === 'UPS' && (
+                              <div className="w-12 h-8 bg-amber-600 text-white text-xs font-bold flex items-center justify-center rounded">
+                                UPS
+                              </div>
+                            )}
+                            {!['USPS', 'FedEx', 'UPS'].includes(rate.provider) && (
+                              <div className="w-12 h-8 bg-gray-600 text-white text-xs font-bold flex items-center justify-center rounded">
+                                {rate.provider.slice(0, 3).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-text-primary">
+                                {rate.provider} {rate.serviceName}
+                              </p>
+                              {rate.attributes?.includes('CHEAPEST') && (
+                                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                                  Cheapest
+                                </span>
+                              )}
+                              {rate.attributes?.includes('FASTEST') && (
+                                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                                  Fastest
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-text-secondary mt-1">
+                              Estimated delivery: {rate.estimatedDays} business days
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="text-right">
+                          <p className="font-semibold text-lg text-text-primary">${rate.amount}</p>
+                          <p className="text-xs text-text-secondary">USD</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  
+                  {/* Shipping Info */}
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <strong>Real-time rates:</strong> Prices are calculated using live carrier rates and may vary based on package dimensions and destination.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Shipping Error */}
+              {shippingError && (
+                <div className="mt-6 bg-surface border border-border-default rounded-xl p-6">
+                  <h3 className="font-semibold text-text-primary mb-4">Shipping Options</h3>
+                  <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                        Unable to calculate shipping rates
+                      </p>
+                      <p className="text-xs text-red-600 dark:text-red-300 mt-1">
+                        {shippingError}
+                      </p>
+                      <button
+                        onClick={() => {
+                          if (isAddressComplete(shippingAddress)) {
+                            fetchShippingRates(shippingAddress);
+                          }
+                        }}
+                        className="mt-2 text-sm text-red-700 dark:text-red-300 hover:text-red-900 dark:hover:text-red-100 font-medium"
+                      >
+                        Try again
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Loading Shipping Rates */}
+              {isLoadingShipping && shippingRates.length === 0 && (
+                <div className="mt-6 bg-surface border border-border-default rounded-xl p-6">
+                  <h3 className="font-semibold text-text-primary mb-4">Shipping Options</h3>
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 rounded-lg">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-text-primary">
+                        Calculating shipping rates...
+                      </p>
+                      <p className="text-xs text-text-secondary mt-1">
+                        Getting real-time rates from carriers
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Continue Shopping */}
+              <div className="mt-8">
+                <Link
+                  href="/shop"
+                  className="text-primary hover:text-primary/80 font-semibold flex items-center gap-2"
+                >
+                  ← Continue Shopping
+                </Link>
+              </div>
+            </div>
+
+            {/* Order Summary */}
+            <div className="lg:col-span-1">
+              <div className="bg-surface border border-border-default rounded-xl p-6 sticky top-8">
+                <h2 className="font-display text-xl font-bold text-text-primary mb-6">
+                  Order Summary
+                </h2>
+
+                <div className="space-y-4 mb-6">
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Subtotal</span>
+                    <span className="text-text-primary">${subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Shipping</span>
+                    <span className="text-text-primary">
+                      {isLoadingShipping ? (
+                        <Loader2 className="h-4 w-4 animate-spin inline" />
+                      ) : (
+                        `$${shipping.toFixed(2)}`
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Tax</span>
+                    <span className="text-text-primary">${tax.toFixed(2)}</span>
+                  </div>
+                  <div className="border-t border-border-default pt-4">
+                    <div className="flex justify-between">
+                      <span className="font-semibold text-text-primary">Total</span>
+                      <span className="font-bold text-xl text-text-primary">
+                        ${total.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Checkout Button */}
+                <button
+                  onClick={handleCheckout}
+                  disabled={isCheckingOut || cartItems.length === 0}
+                  className="w-full bg-primary text-white py-4 rounded-lg font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCheckingOut ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Proceed to Checkout <ArrowRight className="h-5 w-5" />
+                    </>
+                  )}
+                </button>
+
+                {/* Security Badge */}
+                <div className="mt-6 text-center">
+                  <p className="text-sm text-text-secondary mb-2">Secure checkout powered by</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-8 h-5 bg-gradient-to-r from-blue-600 to-blue-700 rounded text-white text-xs font-bold flex items-center justify-center">
+                      S
+                    </div>
+                    <span className="text-sm font-semibold text-text-secondary">Stripe</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Address Confirmation Modal */}
+      {addressValidation && (
+        <AddressConfirmationModal
+          open={showAddressModal}
+          onOpenChange={(open) => {
+            setShowAddressModal(open);
+            // If modal is closed without action, mark as validated and fetch rates
+            if (!open && !isAddressValidated) {
+              setIsAddressValidated(true);
+              const addressToUse = addressValidation.validatedAddress || shippingAddress;
+              fetchShippingRates(addressToUse);
+            }
+          }}
+          originalAddress={shippingAddress}
+          validationResult={addressValidation}
+          onAccept={async (address) => {
+            // Preserve addressType when accepting corrected address
+            setShippingAddress({
+              ...address,
+              addressType: address.addressType || addressType || undefined,
+            });
+            setAddressValidation(null);
+            setIsAddressValidated(true);
+            await fetchShippingRates(address);
+          }}
+          onKeepOriginal={async () => {
+            // Keep original address, just mark as validated
+            setIsAddressValidated(true);
+            await fetchShippingRates(shippingAddress);
+          }}
+        />
+      )}
+    </div>
+  );
+}

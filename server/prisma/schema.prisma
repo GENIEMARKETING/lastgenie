@@ -1,0 +1,518 @@
+// LastGenie Prisma Schema
+// Based on the ERD specification in docs/architecture/entity-relationship-diagram-(erd).md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id                         String      @id @default(cuid())
+  email                      String      @unique
+  passwordHash               String      @map("password_hash")
+  firstName                  String?     @map("first_name")
+  lastName                   String?     @map("last_name")
+  phone                      String?     // Add phone number to user profile
+  role                       UserRole    @default(customer)
+  isAgeVerified              Boolean     @default(false) @map("is_age_verified")
+  ageVerificationTimestamp   DateTime?   @map("age_verification_timestamp")
+  emailVerified              DateTime?   @map("email_verified")
+  emailVerificationToken     String?     @map("email_verification_token")
+  emailVerificationTokenExpiry DateTime? @map("email_verification_token_expiry")
+  passwordResetToken         String?     @map("password_reset_token")
+  passwordResetTokenExpiry   DateTime?   @map("password_reset_token_expiry")
+  stripeCustomerId           String?     @unique @map("stripe_customer_id")
+  createdAt                  DateTime    @default(now()) @map("created_at")
+  updatedAt                  DateTime    @updatedAt @map("updated_at")
+
+  addresses           Address[]
+  orders              Order[]
+  subscriptions       Subscription[]
+  reviews             Review[]
+  blogPosts           BlogPost[]
+  affiliateApplication AffiliateApplication?
+  affiliate           Affiliate?
+  auditLogs           AuditLog[]
+  stockMovements      StockMovement[]
+  carts               Cart[]
+
+  @@index([role])
+  @@index([createdAt])
+  @@index([emailVerified])
+  @@map("users")
+}
+
+model Address {
+  id            String      @id @default(cuid())
+  user          User        @relation(fields: [userId], references: [id])
+  userId        String      @map("user_id")
+  streetAddress String      @map("street_address")
+  city          String
+  state         String
+  zipCode       String      @map("zip_code")
+  country       String
+  phone         String?     // Add phone number field to address
+  type          AddressType
+  isDefault     Boolean     @default(false) @map("is_default")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  
+  orders        Order[]
+  subscriptions Subscription[]
+
+  @@map("addresses")
+}
+
+model Product {
+  id             String          @id @default(cuid())
+  sku            String          @unique
+  name           String
+  description    String
+  price          Float
+  originalPrice  Float?          @map("original_price")
+  imageUrl       String?         @map("image_url")
+  images         Json?           // Array of image URLs stored as JSON
+  category       ProductCategory
+  packageSize    PackageSize     @map("package_size")
+  isSubscribable Boolean         @default(false) @map("is_subscribable")
+  isActive       Boolean         @default(true) @map("is_active")
+  isFeatured     Boolean         @default(false) @map("is_featured")
+  displayOrder   Int             @default(0) @map("display_order")
+  metaTitle      String?         @map("meta_title")
+  metaDescription String?        @map("meta_description")
+  weight         Float?          // Weight in pounds
+  length         Float?          // Length in inches
+  width          Float?          // Width in inches
+  height         Float?          // Height in inches
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  orderItems    OrderItem[]
+  subscriptions Subscription[]
+  reviews       Review[]
+  inventory     Inventory?
+  stockMovements StockMovement[]
+  cartItems     CartItem[]
+
+  @@index([isActive])
+  @@index([isFeatured])
+  @@index([displayOrder])
+  @@index([category])
+  @@map("products")
+}
+
+model Subscription {
+  id                String               @id @default(cuid())
+  user              User                 @relation(fields: [userId], references: [id])
+  userId            String               @map("user_id")
+  product           Product              @relation(fields: [productId], references: [id])
+  productId         String               @map("product_id")
+  shippingAddress   Address              @relation(fields: [shippingAddressId], references: [id])
+  shippingAddressId String               @map("shipping_address_id")
+  status            SubscriptionStatus
+  interval          SubscriptionInterval
+  startDate         DateTime             @map("start_date")
+  nextBillingDate   DateTime             @map("next_billing_date")
+  stripeSubscriptionId String?           @unique @map("stripe_subscription_id")
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+
+  generatedOrders   Order[]
+
+  @@map("subscriptions")
+}
+
+model Order {
+  id                String       @id @default(cuid())
+  orderNumber       String       @unique @map("order_number") // Human-friendly order number
+  user              User         @relation(fields: [userId], references: [id])
+  userId            String       @map("user_id")
+  shippingAddress   Address      @relation(fields: [shippingAddressId], references: [id])
+  shippingAddressId String       @map("shipping_address_id")
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id])
+  subscriptionId    String?      @map("subscription_id")
+  status            OrderStatus
+  totalAmount       Float        @map("total_amount")
+  shippingAmount    Float?       @map("shipping_amount")
+  taxAmount         Float?       @map("tax_amount")
+  shippingCarrier   String?      @map("shipping_carrier")
+  trackingNumber    String?      @map("tracking_number")
+  stripeSessionId   String?      @map("stripe_session_id")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  
+  items             OrderItem[]
+  affiliateConversion AffiliateConversion?
+
+  @@map("orders")
+}
+
+model OrderItem {
+  order         Order   @relation(fields: [orderId], references: [id])
+  orderId       String  @map("order_id")
+  product       Product @relation(fields: [productId], references: [id])
+  productId     String  @map("product_id")
+  quantity      Int
+  pricePerUnit  Float @map("price_per_unit")
+
+  @@id([orderId, productId])
+  @@map("order_items")
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  productSku  String   @map("product_sku")
+  userId      String?  @map("user_id") // Optional - for authenticated users
+  guestName   String?  @map("guest_name") // For guest reviews
+  guestEmail  String?  @map("guest_email") // For guest reviews
+  rating      Int      // 1-5 stars
+  title       String?  // Optional review title
+  content     String   // Review text
+  verified    Boolean  @default(false) // Verified purchase
+  helpful     Int      @default(0) // Helpful votes
+  reported    Boolean  @default(false)
+  approved    Boolean  @default(true) // For moderation
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  product     Product  @relation(fields: [productSku], references: [sku])
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([productSku])
+  @@index([rating])
+  @@index([createdAt])
+  @@map("reviews")
+}
+
+model BlogPost {
+  id          String      @id @default(cuid())
+  author      User        @relation(fields: [authorId], references: [id])
+  authorId    String      @map("author_id")
+  title       String
+  slug        String      @unique
+  content     String
+  excerpt     String?
+  status      PostStatus  @default(draft)
+  publishedAt DateTime?   @map("published_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  @@map("blog_posts")
+}
+
+// ENUM definitions for clarity and type safety
+enum AddressType {
+  shipping
+  billing
+}
+
+enum ProductCategory {
+  male
+  female
+}
+
+enum PackageSize {
+  single
+  twelve_pack // "12-pack" is not a valid enum member name
+}
+
+enum SubscriptionStatus {
+  active
+  paused
+  cancelled
+}
+
+enum SubscriptionInterval {
+  monthly
+  bimonthly
+}
+
+enum OrderStatus {
+  pending
+  paid
+  shipped
+  delivered
+  cancelled
+}
+
+enum PostStatus {
+  draft
+  published
+}
+
+enum AffiliateApplicationStatus {
+  pending
+  approved
+  rejected
+  suspended
+}
+
+enum AffiliateStatus {
+  active
+  suspended
+  inactive
+}
+
+enum ConversionStatus {
+  pending
+  confirmed
+  cancelled
+}
+
+enum PayoutStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+enum PayoutMethod {
+  stripe_connect
+  manual
+}
+
+enum UserRole {
+  customer
+  admin
+  super_admin
+}
+
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  email     String
+  subject   String
+  message   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("contact_submissions")
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?  @map("user_id") // Nullable for guest carts
+  sessionId String?  @map("session_id") // For guest cart identification
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  items     CartItem[]
+
+  @@index([userId])
+  @@index([sessionId])
+  @@map("carts")
+}
+
+model CartItem {
+  id             String  @id @default(cuid())
+  cart           Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId         String  @map("cart_id")
+  product        Product @relation(fields: [productId], references: [id])
+  productId      String  @map("product_id")
+  quantity       Int
+  isSubscription Boolean @default(false) @map("is_subscription")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([cartId])
+  @@index([productId])
+  @@map("cart_items")
+}
+
+model AffiliateApplication {
+  id                String                      @id @default(cuid())
+  user              User                        @relation(fields: [userId], references: [id])
+  userId            String                      @unique @map("user_id")
+  status            AffiliateApplicationStatus  @default(pending)
+  reason            String                      // Why they want to be an affiliate
+  experience        String?                     // Previous marketing experience
+  marketingChannels String?                     @map("marketing_channels") // How they plan to promote
+  adminNotes        String?                     @map("admin_notes")
+  reviewedBy        String?                     @map("reviewed_by") // Admin user ID who reviewed
+  reviewedAt        DateTime?                   @map("reviewed_at")
+  createdAt         DateTime                    @default(now()) @map("created_at")
+  updatedAt         DateTime                    @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([reviewedBy])
+  @@map("affiliate_applications")
+}
+
+model Affiliate {
+  id                    String            @id @default(cuid())
+  user                  User              @relation(fields: [userId], references: [id])
+  userId                String            @unique @map("user_id")
+  referralCode          String            @unique @map("referral_code")
+  status                AffiliateStatus   @default(active)
+  commissionRate        Float             @default(0.10) @map("commission_rate") // Percentage as decimal
+  totalClicks           Int               @default(0) @map("total_clicks")
+  totalConversions      Int               @default(0) @map("total_conversions")
+  totalEarnings         Float             @default(0) @map("total_earnings")
+  pendingEarnings       Float             @default(0) @map("pending_earnings")
+  paidEarnings          Float             @default(0) @map("paid_earnings")
+  stripeConnectId       String?           @map("stripe_connect_id")
+  payoutThreshold       Float             @default(50) @map("payout_threshold")
+  cookieDuration        Int               @default(30) @map("cookie_duration") // Days
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+
+  clicks                AffiliateClick[]
+  conversions           AffiliateConversion[]
+  payouts               AffiliatePayout[]
+
+  @@index([status])
+  @@index([totalEarnings])
+  @@index([createdAt])
+  @@index([stripeConnectId])
+  @@map("affiliates")
+}
+
+model AffiliateClick {
+  id          String    @id @default(cuid())
+  affiliate   Affiliate @relation(fields: [affiliateId], references: [id])
+  affiliateId String    @map("affiliate_id")
+  ipAddress   String    @map("ip_address")
+  userAgent   String    @map("user_agent")
+  referer     String?
+  utm_source  String?   @map("utm_source")
+  utm_medium  String?   @map("utm_medium")
+  utm_campaign String?  @map("utm_campaign")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([affiliateId])
+  @@index([createdAt])
+  @@index([ipAddress, createdAt])
+  @@map("affiliate_clicks")
+}
+
+model AffiliateConversion {
+  id            String    @id @default(cuid())
+  affiliate     Affiliate @relation(fields: [affiliateId], references: [id])
+  affiliateId   String    @map("affiliate_id")
+  order         Order     @relation(fields: [orderId], references: [id])
+  orderId       String    @unique @map("order_id")
+  orderValue    Float     @map("order_value")
+  commissionRate Float    @map("commission_rate") // Rate at time of conversion
+  commissionAmount Float  @map("commission_amount")
+  status        ConversionStatus @default(pending)
+  ipAddress     String    @map("ip_address")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([affiliateId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([affiliateId, createdAt])
+  @@map("affiliate_conversions")
+}
+
+model AffiliatePayout {
+  id            String      @id @default(cuid())
+  affiliate     Affiliate   @relation(fields: [affiliateId], references: [id])
+  affiliateId   String      @map("affiliate_id")
+  amount        Float
+  status        PayoutStatus @default(pending)
+  method        PayoutMethod @default(stripe_connect)
+  stripeTransferId String?  @map("stripe_transfer_id")
+  processedAt   DateTime?   @map("processed_at")
+  failureReason String?     @map("failure_reason")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@index([affiliateId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([stripeTransferId])
+  @@map("affiliate_payouts")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String   // e.g., 'affiliate_approved', 'payout_created'
+  entity    String   // e.g., 'affiliate', 'payout', 'user'
+  entityId  String   @map("entity_id")
+  oldValues Json?    @map("old_values")
+  newValues Json?    @map("new_values")
+  metadata  Json?    // Additional context
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
+
+model Inventory {
+  id                String   @id @default(cuid())
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId         String   @unique @map("product_id")
+  currentStock      Int      @default(0) @map("current_stock")
+  reservedStock     Int      @default(0) @map("reserved_stock")
+  lowStockThreshold Int      @default(10) @map("low_stock_threshold")
+  lastRestocked     DateTime? @map("last_restocked")
+  totalSold         Int      @default(0) @map("total_sold")
+  totalReceived     Int      @default(0) @map("total_received")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@index([currentStock])
+  @@index([lowStockThreshold])
+  @@index([lastRestocked])
+  @@map("inventory")
+}
+
+model StockMovement {
+  id          String            @id @default(cuid())
+  product     Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId   String            @map("product_id")
+  type        StockMovementType
+  quantity    Int               // Positive for additions, negative for deductions
+  previousStock Int             @map("previous_stock")
+  newStock    Int               @map("new_stock")
+  reason      String?           // Optional reason for the movement
+  orderId     String?           @map("order_id") // Link to order if movement is due to sale
+  adminUserId String?           @map("admin_user_id") // Admin who made the change
+  adminUser   User?             @relation(fields: [adminUserId], references: [id])
+  metadata    Json?             // Additional context
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  @@index([productId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([adminUserId])
+  @@index([orderId])
+  @@map("stock_movements")
+}
+
+enum StockMovementType {
+  restock       // Admin adding stock
+  sale          // Stock sold to customer
+  adjustment    // Manual adjustment by admin
+  return        // Product returned by customer
+  damaged       // Stock marked as damaged
+  expired       // Stock marked as expired
+  reserved      // Stock reserved for pending order
+  unreserved    // Stock unreserved from cancelled order
+}
+
+model NewsletterSubscription {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  subscribedAt DateTime @default(now()) @map("subscribed_at")
+  isActive    Boolean  @default(true) @map("is_active")
+  source      String?  // Track where the subscription came from
+  
+  @@index([email])
+  @@index([subscribedAt])
+  @@map("newsletter_subscriptions")
+}
