@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  // Disable Lightning CSS due to native binding issues in CI/CD environments
+  experimental: {
+    useLightningcss: false,
+  },
+  
   // Configure output file tracing root to silence workspace warning
   outputFileTracingRoot: path.join(__dirname),
   
