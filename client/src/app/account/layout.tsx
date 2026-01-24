@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ProtectedRoute } from '@/lib/auth-context';
+
+export const dynamic = 'force-dynamic';
 import { User, Settings, Package, CreditCard, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
