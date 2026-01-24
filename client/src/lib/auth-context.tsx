@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { User, getCurrentUser, login as apiLogin, logout as apiLogout, register as apiRegister, LoginData, RegisterData, ApiResponse } from './api/auth';
 import { getProtectedRouteRedirect, extractReturnUrl, extractIntent, handleAuthenticatedUserRedirect } from './redirect-utils';
@@ -132,7 +132,7 @@ export function useAuth() {
 /**
  * Protected route wrapper component
  */
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRouteContent({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -162,11 +162,19 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ProtectedRouteContent>{children}</ProtectedRouteContent>
+    </Suspense>
+  );
+}
+
 /**
  * Admin route wrapper component
  * Requires user to be authenticated and have admin or super_admin role
  */
-export function AdminRoute({ children }: { children: React.ReactNode }) {
+function AdminRouteContent({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -224,11 +232,19 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+export function AdminRoute({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AdminRouteContent>{children}</AdminRouteContent>
+    </Suspense>
+  );
+}
+
 /**
  * Auth page guard component
  * Prevents authenticated users from accessing login/signup pages
  */
-export function AuthPageGuard({ children }: { children: React.ReactNode }) {
+function AuthPageGuardContent({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -272,4 +288,12 @@ export function AuthPageGuard({ children }: { children: React.ReactNode }) {
 
   // User is not authenticated, show the auth page
   return <>{children}</>;
+}
+
+export function AuthPageGuard({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthPageGuardContent>{children}</AuthPageGuardContent>
+    </Suspense>
+  );
 }

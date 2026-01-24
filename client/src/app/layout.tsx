@@ -13,7 +13,7 @@ import { AsyncErrorBoundary } from "@/components/error-boundary";
 import { ApiDebugPanel } from "@/components/connection-status";
 import { Suspense } from "react";
 
-export const dynamic = 'force-dynamic';
+// Removed dynamic = 'force-dynamic' for static export compatibility
 
 export const metadata: Metadata = {
   title: "Genie: Unleash Your Potential | Modern Sexual Wellness",

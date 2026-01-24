@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth, AuthPageGuard } from '@/lib/auth-context';
@@ -12,7 +12,7 @@ import { extractReturnUrl, extractIntent, createLoginUrl } from '@/lib/redirect-
 import { updateProfile } from '@/lib/api/auth';
 import { createAddress } from '@/lib/api/addresses';
 
-export default function SignupPage() {
+function SignupPageContent() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -338,5 +338,17 @@ export default function SignupPage() {
       </div>
       </div>
     </AuthPageGuard>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    }>
+      <SignupPageContent />
+    </Suspense>
   );
 }

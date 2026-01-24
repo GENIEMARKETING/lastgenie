@@ -5,8 +5,15 @@ const nextConfig: NextConfig = {
   // Configure output file tracing root to silence workspace warning
   outputFileTracingRoot: path.join(__dirname),
   
-  // Configure external image domains
+  // Enable static export for AWS Amplify deployment
+  output: 'export',
+  
+  // Add trailing slash for proper static routing
+  trailingSlash: true,
+  
+  // Configure images for static export (disable optimization)
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',

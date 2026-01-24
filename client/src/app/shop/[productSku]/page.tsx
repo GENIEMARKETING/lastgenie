@@ -1,95 +1,90 @@
 import { Metadata } from 'next';
-import Image from 'next/image';
-import Link from 'next/link';
-import { ArrowLeft, Star, Shield, Truck, RefreshCw } from 'lucide-react';
-import StockIndicator from '@/components/stock-indicator';
 import ProductDetailClient from './product-detail-client';
 
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  originalPrice?: number;
-  sku: string;
-  imageUrl?: string;
-  metaTitle?: string;
-  metaDescription?: string;
-  category: string;
-  packageSize: string;
-  isActive: boolean;
-  isFeatured: boolean;
-}
-
-
-// Fetch product data for metadata generation
-async function getProduct(productSku: string): Promise<Product | null> {
+// Generate static params for all products at build time
+export async function generateStaticParams() {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/products/${productSku}`, {
-      cache: 'no-store' // Ensure fresh data for SEO
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success) {
-        return data.data;
-      }
-    }
+    // For static export, we'll define the known product SKUs
+    // This avoids the need to fetch from API during build
+    const productSkus = [
+      'genie-for-him',
+      'genie-for-her', 
+      'genie-for-him-12pack',
+      'genie-for-her-12pack'
+    ];
+
+    return productSkus.map((productSku) => ({
+      productSku: productSku,
+    }));
   } catch (error) {
-    console.error('Error fetching product for metadata:', error);
+    console.error('Error generating static params:', error);
+    // Return empty array if there's an error
+    return [];
   }
-  return null;
 }
 
-// Generate metadata for SEO
+// Generate metadata for SEO (static for build compatibility)
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ productSku: string }>;
 }): Promise<Metadata> {
   const { productSku } = await params;
-  const product = await getProduct(productSku);
   
-  if (!product) {
-    return {
-      title: 'Product Not Found | Genie',
-      description: 'The requested product could not be found.'
-    };
-  }
+  // Static metadata based on known products
+  const productMeta: Record<string, { title: string; description: string; price: string; category: string }> = {
+    'genie-for-him': {
+      title: 'Genie for Him - Male Sexual Enhancement Drink | Genie',
+      description: 'Enhance your vitality with Genie for Him - a natural sexual enhancement drink designed for men.',
+      price: '10',
+      category: 'male'
+    },
+    'genie-for-her': {
+      title: 'Genie for Her - Female Sexual Enhancement Drink | Genie',
+      description: 'Boost your wellness with Genie for Her - a natural sexual enhancement drink designed for women.',
+      price: '10',
+      category: 'female'
+    },
+    'genie-for-him-12pack': {
+      title: 'Genie for Him 12-Pack - Male Enhancement Bundle | Genie',
+      description: 'Get the best value with our 12-pack of Genie for Him sexual enhancement drinks.',
+      price: '99',
+      category: 'male'
+    },
+    'genie-for-her-12pack': {
+      title: 'Genie for Her 12-Pack - Female Enhancement Bundle | Genie',
+      description: 'Get the best value with our 12-pack of Genie for Her sexual enhancement drinks.',
+      price: '99',
+      category: 'female'
+    }
+  };
 
-  const title = product.metaTitle || `${product.name} | Genie`;
-  const description = product.metaDescription || product.description;
-  const price = product.price;
-  const availability = 'InStock'; // You can make this dynamic based on inventory
+  const meta = productMeta[productSku] || {
+    title: 'Product | Genie',
+    description: 'Discover Genie\'s sexual enhancement drinks for enhanced vitality and wellness.',
+    price: '10',
+    category: 'wellness'
+  };
 
   return {
-    title,
-    description,
+    title: meta.title,
+    description: meta.description,
     openGraph: {
-      title,
-      description,
-      images: product.imageUrl ? [
-        {
-          url: product.imageUrl,
-          width: 600,
-          height: 600,
-          alt: product.name
-        }
-      ] : [],
+      title: meta.title,
+      description: meta.description,
       type: 'website'
     },
     twitter: {
       card: 'summary_large_image',
-      title,
-      description,
-      images: product.imageUrl ? [product.imageUrl] : []
+      title: meta.title,
+      description: meta.description
     },
     other: {
-      'product:price:amount': price.toString(),
+      'product:price:amount': meta.price,
       'product:price:currency': 'USD',
-      'product:availability': availability,
+      'product:availability': 'InStock',
       'product:brand': 'Genie',
-      'product:category': product.category
+      'product:category': meta.category
     }
   };
 }
