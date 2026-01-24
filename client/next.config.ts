@@ -17,11 +17,10 @@ const nextConfig: NextConfig = {
     ],
   },
   
-  // Proxy API requests to backend server
+  // Proxy API requests to backend server (development only)
   async rewrites() {
-    // In production, the frontend should call the absolute API URL set via
-    // NEXT_PUBLIC_API_URL. The dev-only proxy avoids CORS locally.
-    if (process.env.NEXT_PUBLIC_API_URL) {
+    // Skip rewrites for static export builds
+    if (process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_API_URL) {
       return [];
     }
 

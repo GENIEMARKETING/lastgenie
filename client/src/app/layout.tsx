@@ -11,6 +11,7 @@ import { AgeVerificationModal } from "@/components/age-verification-modal";
 import { ReferralTracker } from "@/components/referral-tracker";
 import { AsyncErrorBoundary } from "@/components/error-boundary";
 import { ApiDebugPanel } from "@/components/connection-status";
+import { Suspense } from "react";
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +36,9 @@ export default function RootLayout({
                 <AffiliateProvider>
                   <AgeVerificationProvider>
                     <AgeVerificationModal />
-                    <ReferralTracker />
+                    <Suspense fallback={null}>
+                      <ReferralTracker />
+                    </Suspense>
                     <Header />
                     <main className="flex-1">
                       {children}

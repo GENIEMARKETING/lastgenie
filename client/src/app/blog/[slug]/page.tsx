@@ -8,6 +8,7 @@ import { BlogPostHeader } from '@/components/blog/blog-post-header';
 import { MarkdownContent } from '@/components/blog/markdown-content';
 import { ArrowLeft } from 'lucide-react';
 
+
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
 }

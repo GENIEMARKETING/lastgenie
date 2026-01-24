@@ -21,6 +21,7 @@ interface Product {
   isFeatured: boolean;
 }
 
+
 // Fetch product data for metadata generation
 async function getProduct(productSku: string): Promise<Product | null> {
   try {
