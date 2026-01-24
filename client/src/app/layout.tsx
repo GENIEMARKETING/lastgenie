@@ -12,8 +12,6 @@ import { ReferralTracker } from "@/components/referral-tracker";
 import { AsyncErrorBoundary } from "@/components/error-boundary";
 import { ApiDebugPanel } from "@/components/connection-status";
 
-export const dynamic = 'force-dynamic';
-
 export const metadata: Metadata = {
   title: "Genie: Unleash Your Potential | Modern Sexual Wellness",
   description: "Discover Genie's sexual enhancer drinks for men and women. Modern, playful, and empowering wellness products designed to enhance your vitality and connection.",
