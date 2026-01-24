@@ -19,6 +19,12 @@ const nextConfig: NextConfig = {
   
   // Proxy API requests to backend server
   async rewrites() {
+    // In production, the frontend should call the absolute API URL set via
+    // NEXT_PUBLIC_API_URL. The dev-only proxy avoids CORS locally.
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      return [];
+    }
+
     return [
       {
         source: '/api/:path*',

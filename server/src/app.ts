@@ -5,10 +5,26 @@ import { apiRouter } from "./routes";
 
 const app = express();
 
+const allowedOrigins = (process.env.CLIENT_URLS ?? process.env.CLIENT_URL ?? "http://localhost:3000")
+  .split(",")
+  .map((v) => v.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL ?? "http://localhost:3000",
-    credentials: true
+    origin: (origin, callback) => {
+      // Allow non-browser / same-origin requests
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
   })
 );
 app.use(cookieParser());
