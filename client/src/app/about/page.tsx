@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { Heart, Sparkles, Users, Shield, Target, Lightbulb, ArrowRight, Handshake } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default function AboutPage() {
   const values = [
     {
