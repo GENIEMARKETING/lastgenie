@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -79,7 +78,12 @@ export default function AuditLogsPage() {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const response = await adminApi.getAuditLogs({
+      const response = await adminApi.getAuditLogs<{
+        logs: AuditLog[];
+        pagination: {
+          totalPages: number;
+        };
+      }>({
         ...filters,
         page: currentPage,
         limit: 25
@@ -101,7 +105,7 @@ export default function AuditLogsPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await adminApi.getAuditLogStats();
+      const response = await adminApi.getAuditLogStats<AuditLogStats>();
 
       if (response.success && response.data) {
         setStats(response.data);

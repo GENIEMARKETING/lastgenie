@@ -35,6 +35,7 @@ interface Product {
   price: number;
   originalPrice?: number;
   category: string;
+  packageSize: string;
   sku: string;
   isActive: boolean;
   isFeatured: boolean;
@@ -379,7 +380,7 @@ export default function AdminProductsPage() {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const response = await adminApi.getProducts({
+      const response = await adminApi.getProducts<Product[]>({
         search: searchTerm || undefined,
         category: categoryFilter !== 'all' ? categoryFilter : undefined,
         isActive: statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined,
@@ -393,7 +394,7 @@ export default function AdminProductsPage() {
       }
 
       // Fetch stats
-      const statsResponse = await adminApi.getProducts({ limit: 1000 }); // Get all for stats
+      const statsResponse = await adminApi.getProducts<Product[]>({ limit: 1000 }); // Get all for stats
       if (statsResponse.success && statsResponse.data) {
         const allProducts = statsResponse.data;
         setStats({

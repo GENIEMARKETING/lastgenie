@@ -173,9 +173,9 @@ export default function AdminAnalyticsPage() {
       
       // Fetch all analytics data in parallel
       const [overviewResponse, salesResponse, customerResponse] = await Promise.all([
-        adminApi.getAnalyticsOverview(period),
-        adminApi.getSalesAnalytics(period),
-        adminApi.getCustomerAnalytics(period)
+        adminApi.getAnalyticsOverview<any>(period),
+        adminApi.getSalesAnalytics<any>(period),
+        adminApi.getCustomerAnalytics<any>(period)
       ]);
 
       if (!overviewResponse.success || !salesResponse.success || !customerResponse.success) {

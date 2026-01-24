@@ -79,7 +79,12 @@ export default function AdminUsersPage() {
         ...(searchTerm && { search: searchTerm })
       };
 
-      const response = await adminApi.getUsers(filters);
+      const response = await adminApi.getUsers<{
+        users: User[];
+        pagination: {
+          totalPages: number;
+        };
+      }>(filters);
 
       if (response.success && response.data) {
         setUsers(response.data.users);
@@ -97,7 +102,7 @@ export default function AdminUsersPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await adminApi.getUserStats();
+      const response = await adminApi.getUserStats<UserStats>();
 
       if (response.success && response.data) {
         setStats(response.data);

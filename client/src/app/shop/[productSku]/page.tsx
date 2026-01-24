@@ -41,8 +41,13 @@ async function getProduct(productSku: string): Promise<Product | null> {
 }
 
 // Generate metadata for SEO
-export async function generateMetadata({ params }: { params: { productSku: string } }): Promise<Metadata> {
-  const product = await getProduct(params.productSku);
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ productSku: string }>;
+}): Promise<Metadata> {
+  const { productSku } = await params;
+  const product = await getProduct(productSku);
   
   if (!product) {
     return {

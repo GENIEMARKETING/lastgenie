@@ -375,7 +375,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: { key: 'isLoadingStats', value: true } });
     
     try {
-      const response = await adminApi.getDashboardStats();
+      const response = await adminApi.getDashboardStats<DashboardStats>();
       if (response.success && response.data) {
         dispatch({ type: 'SET_DASHBOARD_STATS', payload: response.data });
       } else {
@@ -394,7 +394,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: { key: 'isLoadingRecentOrders', value: true } });
     
     try {
-      const response = await adminApi.getRecentOrders(10);
+      const response = await adminApi.getRecentOrders<any>(10);
       if (response.success && response.data) {
         dispatch({ type: 'SET_RECENT_ORDERS', payload: response.data });
       } else {
@@ -413,7 +413,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: { key: 'isLoadingLowStock', value: true } });
     
     try {
-      const response = await adminApi.getLowStockProducts();
+      const response = await adminApi.getLowStockProducts<any>();
       if (response.success && response.data) {
         dispatch({ type: 'SET_LOW_STOCK_PRODUCTS', payload: response.data });
       } else {
@@ -430,7 +430,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const loadOrdersNeedingAttention = async () => {
     try {
-      const response = await adminApi.getOrdersNeedingAttention();
+      const response = await adminApi.getOrdersNeedingAttention<any>();
       if (response.success && response.data) {
         dispatch({ type: 'SET_ORDERS_NEEDING_ATTENTION', payload: response.data });
       }

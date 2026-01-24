@@ -4,9 +4,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { 
   MapPin, 
@@ -193,129 +192,120 @@ export default function AddressesPage() {
             </p>
           </div>
           
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openAddDialog} className="bg-primary hover:bg-primary-dark">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Address
-              </Button>
-            </DialogTrigger>
-            
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingAddress ? 'Edit Address' : 'Add New Address'}
-                </DialogTitle>
-              </DialogHeader>
-              
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="type">Address Type</Label>
-                  <Select 
-                    value={formData.type} 
-                    onValueChange={(value: 'shipping' | 'billing') => 
-                      setFormData({ ...formData, type: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="shipping">Shipping Address</SelectItem>
-                      <SelectItem value="billing">Billing Address</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="streetAddress">Street Address</Label>
-                  <Input
-                    id="streetAddress"
-                    value={formData.streetAddress}
-                    onChange={(e) => setFormData({ ...formData, streetAddress: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="state">State</Label>
-                    <Input
-                      id="state"
-                      value={formData.state}
-                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="zipCode">ZIP Code</Label>
-                    <Input
-                      id="zipCode"
-                      value={formData.zipCode}
-                      onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="country">Country</Label>
-                    <Input
-                      id="country"
-                      value={formData.country}
-                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isDefault"
-                    checked={formData.isDefault}
-                    onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
-                    className="rounded border-gray-300"
-                  />
-                  <Label htmlFor="isDefault">Set as default address</Label>
-                </div>
-
-                {error && (
-                  <div className="text-red-600 text-sm">{error}</div>
-                )}
-
-                <div className="flex gap-2">
-                  <Button 
-                    type="submit" 
-                    disabled={isSubmitting}
-                    className="flex-1 bg-primary hover:bg-primary-dark"
-                  >
-                    {isSubmitting ? 'Saving...' : editingAddress ? 'Update' : 'Add'} Address
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setIsDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={openAddDialog} className="bg-primary hover:bg-primary-dark">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Address
+          </Button>
         </div>
+
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          title={editingAddress ? 'Edit Address' : 'Add New Address'}
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="type">Address Type</Label>
+              <select
+                id="type"
+                value={formData.type}
+                onChange={(e) =>
+                  setFormData({ ...formData, type: e.target.value as 'shipping' | 'billing' })
+                }
+                className="mt-1 w-full rounded-md border border-border-default bg-white px-3 py-2 text-sm"
+              >
+                <option value="shipping">Shipping Address</option>
+                <option value="billing">Billing Address</option>
+              </select>
+            </div>
+
+            <div>
+              <Label htmlFor="streetAddress">Street Address</Label>
+              <Input
+                id="streetAddress"
+                value={formData.streetAddress}
+                onChange={(e) => setFormData({ ...formData, streetAddress: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="zipCode">ZIP Code</Label>
+                <Input
+                  id="zipCode"
+                  value={formData.zipCode}
+                  onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="country">Country</Label>
+                <Input
+                  id="country"
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isDefault"
+                checked={formData.isDefault}
+                onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
+                className="rounded border-gray-300"
+              />
+              <Label htmlFor="isDefault">Set as default address</Label>
+            </div>
+
+            {error && (
+              <div className="text-red-600 text-sm">{error}</div>
+            )}
+
+            <div className="flex gap-2">
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="flex-1 bg-primary hover:bg-primary-dark"
+              >
+                {isSubmitting ? 'Saving...' : editingAddress ? 'Update' : 'Add'} Address
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </Dialog>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">

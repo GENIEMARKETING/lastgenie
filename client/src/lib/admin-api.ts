@@ -40,24 +40,24 @@ class AdminApiClient {
   }
 
   // Dashboard APIs
-  async getDashboardStats() {
-    return this.request('/admin/dashboard/stats');
+  async getDashboardStats<T>() {
+    return this.request<T>('/admin/dashboard/stats');
   }
 
-  async getRecentOrders(limit: number = 10) {
-    return this.request(`/admin/orders/recent?limit=${limit}`);
+  async getRecentOrders<T>(limit: number = 10) {
+    return this.request<T>(`/admin/orders/recent?limit=${limit}`);
   }
 
-  async getOrdersNeedingAttention() {
-    return this.request('/admin/orders/attention');
+  async getOrdersNeedingAttention<T>() {
+    return this.request<T>('/admin/orders/attention');
   }
 
-  async getRevenueData(days: number = 30) {
-    return this.request(`/admin/orders/revenue-data?days=${days}`);
+  async getRevenueData<T>(days: number = 30) {
+    return this.request<T>(`/admin/orders/revenue-data?days=${days}`);
   }
 
   // Inventory APIs
-  async getInventory(filters: {
+  async getInventory<T>(filters: {
     lowStockOnly?: boolean;
     activeProductsOnly?: boolean;
     limit?: number;
@@ -70,11 +70,11 @@ class AdminApiClient {
       }
     });
 
-    return this.request(`/admin/inventory?${params.toString()}`);
+    return this.request<T>(`/admin/inventory?${params.toString()}`);
   }
 
-  async getLowStockProducts() {
-    return this.request('/admin/inventory/low-stock');
+  async getLowStockProducts<T>() {
+    return this.request<T>('/admin/inventory/low-stock');
   }
 
   async restockProduct(productId: string, quantity: number, reason?: string) {
@@ -110,7 +110,7 @@ class AdminApiClient {
   }
 
   // Product APIs
-  async getProducts(filters: {
+  async getProducts<T>(filters: {
     category?: string;
     packageSize?: string;
     isActive?: boolean;
@@ -128,7 +128,7 @@ class AdminApiClient {
       }
     });
 
-    return this.request(`/admin/products?${params.toString()}`);
+    return this.request<T>(`/admin/products?${params.toString()}`);
   }
 
   async getProduct(id: string) {
@@ -163,7 +163,7 @@ class AdminApiClient {
   }
 
   // Order APIs
-  async getOrders(filters: {
+  async getOrders<T>(filters: {
     status?: string;
     userId?: string;
     dateFrom?: string;
@@ -181,7 +181,7 @@ class AdminApiClient {
       }
     });
 
-    return this.request(`/admin/orders?${params.toString()}`);
+    return this.request<T>(`/admin/orders?${params.toString()}`);
   }
 
   async getOrder(id: string) {
@@ -235,20 +235,20 @@ class AdminApiClient {
   }
 
   // Analytics APIs
-  async getAnalyticsOverview(period: number = 30) {
-    return this.request(`/admin/analytics/overview?period=${period}`);
+  async getAnalyticsOverview<T>(period: number = 30) {
+    return this.request<T>(`/admin/analytics/overview?period=${period}`);
   }
 
-  async getSalesAnalytics(period: number = 30) {
-    return this.request(`/admin/analytics/sales?period=${period}`);
+  async getSalesAnalytics<T>(period: number = 30) {
+    return this.request<T>(`/admin/analytics/sales?period=${period}`);
   }
 
-  async getCustomerAnalytics(period: number = 30) {
-    return this.request(`/admin/analytics/customers?period=${period}`);
+  async getCustomerAnalytics<T>(period: number = 30) {
+    return this.request<T>(`/admin/analytics/customers?period=${period}`);
   }
 
   // User Management APIs
-  async getUsers(filters: {
+  async getUsers<T>(filters: {
     page?: number;
     limit?: number;
     search?: string;
@@ -263,11 +263,11 @@ class AdminApiClient {
       }
     });
     
-    return this.request(`/admin/users?${params.toString()}`);
+    return this.request<T>(`/admin/users?${params.toString()}`);
   }
 
-  async getUserStats() {
-    return this.request('/admin/users/stats');
+  async getUserStats<T>() {
+    return this.request<T>('/admin/users/stats');
   }
 
   async getUser(id: string) {
@@ -314,11 +314,11 @@ class AdminApiClient {
   }
 
   // Affiliate Management APIs
-  async getAffiliateAnalytics() {
-    return this.request('/admin/affiliates/analytics');
+  async getAffiliateAnalytics<T>() {
+    return this.request<T>('/admin/affiliates/analytics');
   }
 
-  async getAffiliateApplications(filters: {
+  async getAffiliateApplications<T>(filters: {
     status?: string;
     limit?: number;
     offset?: number;
@@ -330,10 +330,10 @@ class AdminApiClient {
       }
     });
 
-    return this.request(`/admin/affiliates/applications?${params.toString()}`);
+    return this.request<T>(`/admin/affiliates/applications?${params.toString()}`);
   }
 
-  async getAffiliates(filters: {
+  async getAffiliates<T>(filters: {
     search?: string;
     limit?: number;
     offset?: number;
@@ -345,10 +345,10 @@ class AdminApiClient {
       }
     });
 
-    return this.request(`/admin/affiliates?${params.toString()}`);
+    return this.request<T>(`/admin/affiliates?${params.toString()}`);
   }
 
-  async getAffiliatePayouts(filters: {
+  async getAffiliatePayouts<T>(filters: {
     status?: string;
     limit?: number;
     offset?: number;
@@ -360,7 +360,7 @@ class AdminApiClient {
       }
     });
 
-    return this.request(`/admin/affiliates/payouts?${params.toString()}`);
+    return this.request<T>(`/admin/affiliates/payouts?${params.toString()}`);
   }
 
   async reviewAffiliateApplication(applicationId: string, action: 'approve' | 'reject', adminNotes?: string) {
@@ -393,7 +393,7 @@ class AdminApiClient {
   }
 
   // Audit Log Management APIs
-  async getAuditLogs(filters: {
+  async getAuditLogs<T>(filters: {
     userId?: string;
     action?: string;
     entity?: string;
@@ -410,11 +410,11 @@ class AdminApiClient {
       }
     });
 
-    return this.request(`/admin/audit-logs?${params.toString()}`);
+    return this.request<T>(`/admin/audit-logs?${params.toString()}`);
   }
 
-  async getAuditLogStats() {
-    return this.request('/admin/audit-logs/stats');
+  async getAuditLogStats<T>() {
+    return this.request<T>('/admin/audit-logs/stats');
   }
 
   async getAuditLog(id: string) {

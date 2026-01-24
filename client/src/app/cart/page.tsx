@@ -868,7 +868,7 @@ export default function CartPage() {
                               {rate.serviceName}
                             </div>
                             <div className="text-sm text-text-secondary">
-                              {rate.carrier} • {rate.estimatedDays} days
+                              {rate.provider} • {rate.estimatedDays} days
                             </div>
                           </div>
                         </div>

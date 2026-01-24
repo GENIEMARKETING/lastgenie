@@ -62,7 +62,7 @@ export function BlogSection({ className }: BlogSectionProps) {
             The Journal
           </h2>
           <Link href="/blog" className="hidden md:block">
-            <Button variant="link" className="text-primary">
+            <Button variant="ghost" className="text-primary">
               Read all articles
             </Button>
           </Link>

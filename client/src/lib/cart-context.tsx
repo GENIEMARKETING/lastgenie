@@ -266,6 +266,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const newItem: CartItem = {
           id: generateCartItemId(),
           ...payload,
+          isSubscription: payload.isSubscription ?? false,
         };
 
         // Optimistic update

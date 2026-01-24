@@ -145,7 +145,7 @@ export default function AdminAffiliatesPage() {
   };
 
   const fetchAnalytics = async () => {
-    const response = await adminApi.getAffiliateAnalytics();
+    const response = await adminApi.getAffiliateAnalytics<Analytics>();
     if (response.success && response.data) {
       setAnalytics(response.data);
     }
@@ -156,7 +156,9 @@ export default function AdminAffiliatesPage() {
       ...(statusFilter !== 'all' && { status: statusFilter })
     };
     
-    const response = await adminApi.getAffiliateApplications(filters);
+    const response = await adminApi.getAffiliateApplications<{
+      applications: AffiliateApplication[];
+    }>(filters);
     if (response.success && response.data) {
       setApplications(response.data.applications);
     }
@@ -167,7 +169,9 @@ export default function AdminAffiliatesPage() {
       ...(searchTerm && { search: searchTerm })
     };
     
-    const response = await adminApi.getAffiliates(filters);
+    const response = await adminApi.getAffiliates<{
+      affiliates: Affiliate[];
+    }>(filters);
     if (response.success && response.data) {
       setAffiliates(response.data.affiliates);
     }

@@ -142,14 +142,18 @@ export function GuestCheckoutProvider({ children }: { children: React.ReactNode 
 
   const setBillingAddress = useCallback((address: ValidatedAddress | null) => {
     setBillingAddressState(address);
-    saveGuestDataToStorage({ billingAddress: address });
+    if (address === null) {
+      saveGuestDataToStorage({ billingAddress: undefined });
+    } else {
+      saveGuestDataToStorage({ billingAddress: address });
+    }
   }, []);
 
   const setSameAsBilling = useCallback((same: boolean) => {
     setSameAsBillingState(same);
     if (same) {
       setBillingAddressState(null);
-      saveGuestDataToStorage({ sameAsBilling: same, billingAddress: null });
+      saveGuestDataToStorage({ sameAsBilling: same, billingAddress: undefined });
     } else {
       saveGuestDataToStorage({ sameAsBilling: same });
     }

@@ -131,10 +131,7 @@ export function SavedAddressSelector({
         if (response.success) {
           // Refresh the addresses list
           await loadAddresses();
-          // If the deleted address was selected, clear the selection
-          if (selectedAddressId === addressId) {
-            setSelectedAddressId(undefined);
-          }
+          // Note: Parent component controls selected address state
         } else {
           setError(response.error || 'Failed to delete address');
           setErrorType('server');
@@ -186,7 +183,7 @@ export function SavedAddressSelector({
                 const loginUrl = createLoginUrl('/cart', 'checkout');
                 router.push(loginUrl);
               }}
-              variant="default"
+              variant="primary"
               size="sm"
             >
               Log In

@@ -173,7 +173,7 @@ export function BillingAddressForm({
 
   const handleFieldBlur = (field: string) => {
     setTouched(prev => ({ ...prev, [field]: true }));
-    const error = validateField(field, formData[field]);
+    const error = validateField(field, formData[field as keyof ValidatedAddress] || '');
     setErrors(prev => ({ ...prev, [field]: error }));
   };
 

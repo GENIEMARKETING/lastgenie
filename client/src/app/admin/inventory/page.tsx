@@ -156,7 +156,7 @@ export default function InventoryPage() {
   const loadInventory = async () => {
     setLoading(true);
     try {
-      const response = await adminApi.getInventory({
+      const response = await adminApi.getInventory<InventoryItem[]>({
         lowStockOnly: filterLowStock,
         activeProductsOnly: true,
         limit: 100
@@ -325,7 +325,7 @@ export default function InventoryPage() {
           <div className="flex items-end">
             <Button
               onClick={() => setFilterLowStock(!filterLowStock)}
-              variant={filterLowStock ? "default" : "outline"}
+              variant={filterLowStock ? "primary" : "outline"}
               className="flex items-center gap-2"
             >
               <Filter className="h-4 w-4" />

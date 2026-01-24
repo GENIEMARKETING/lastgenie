@@ -161,12 +161,14 @@ export default function AdminSettingsPage() {
 
   const fetchAdminUsers = async () => {
     try {
-      const response = await adminApi.getUsers({
+      const response = await adminApi.getUsers<{
+        users: any[];
+      }>({
         role: 'admin',
         limit: 100
       });
       
-      if (response.success) {
+      if (response.success && response.data?.users) {
         // Filter to only admin and super_admin users
         const adminUsers = response.data.users.filter((user: any) => 
           ['admin', 'super_admin'].includes(user.role)
@@ -209,12 +211,14 @@ export default function AdminSettingsPage() {
 
     try {
       // First, find the user by email
-      const usersResponse = await adminApi.getUsers({
+      const usersResponse = await adminApi.getUsers<{
+        users: any[];
+      }>({
         search: newAdminEmail,
         limit: 1
       });
 
-      if (!usersResponse.success || usersResponse.data.users.length === 0) {
+      if (!usersResponse.success || !usersResponse.data?.users?.length) {
         setError('User not found with that email address');
         return;
       }

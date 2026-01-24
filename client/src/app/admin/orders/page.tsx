@@ -236,7 +236,7 @@ export default function OrdersPage() {
   const loadOrders = async () => {
     setLoading(true);
     try {
-      const response = await adminApi.getOrders({
+      const response = await adminApi.getOrders<Order[]>({
         search: searchTerm || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         limit: 100,
@@ -256,7 +256,9 @@ export default function OrdersPage() {
 
   const loadStats = async () => {
     try {
-      const response = await adminApi.getDashboardStats();
+      const response = await adminApi.getDashboardStats<{
+        orders: OrderStats;
+      }>();
       if (response.success && response.data?.orders) {
         setStats(response.data.orders);
       }
@@ -479,7 +481,7 @@ export default function OrdersPage() {
             </thead>
             <tbody>
               {filteredOrders.map((order) => {
-                const StatusIcon = getStatusIcon(order.status);
+                const statusIcon = getStatusIcon(order.status);
                 
                 return (
                   <tr key={order.id} className="border-b border-border-default hover:bg-background/50">
@@ -534,7 +536,7 @@ export default function OrdersPage() {
                     
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-2">
-                        <StatusIcon />
+                        {statusIcon}
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(order.status)}`}>
                           {order.status}
                         </span>
