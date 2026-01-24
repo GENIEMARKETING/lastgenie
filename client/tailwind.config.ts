@@ -29,6 +29,19 @@ const config: Config = {
         'secondary': 'var(--color-brand-secondary)',
         'accent': 'var(--color-brand-accent)',
         'foreground': 'var(--color-text-primary)',
+        // Additional mappings for common Tailwind patterns
+        'muted': 'var(--color-surface)',
+        'muted-foreground': 'var(--color-text-secondary)',
+        'card': 'var(--color-surface)',
+        'card-foreground': 'var(--color-text-primary)',
+        'popover': 'var(--color-surface)',
+        'popover-foreground': 'var(--color-text-primary)',
+        'border': 'var(--color-border-default)',
+        'input': 'var(--color-border-default)',
+        'ring': 'var(--color-brand-primary)',
+        // Semantic color shortcuts
+        'destructive': 'var(--color-error)',
+        'destructive-foreground': '#ffffff',
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
