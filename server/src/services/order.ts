@@ -26,10 +26,11 @@ export interface UpdateOrderData {
 export interface OrderStats {
   totalOrders: number;
   pendingOrders: number;
-  paidOrders: number;
+  processingOrders: number;
   shippedOrders: number;
   deliveredOrders: number;
   cancelledOrders: number;
+  refundedOrders: number;
   totalRevenue: number;
   averageOrderValue: number;
   todayOrders: number;
@@ -246,12 +247,17 @@ export async function updateOrder(id: string, data: UpdateOrderData, adminUserId
     }
 
     // Update the order
+    const updateData: any = {
+      ...data,
+      updatedAt: new Date()
+    };
+    // Ensure status is properly typed if present
+    if (updateData.status) {
+      updateData.status = updateData.status as any;
+    }
     const updatedOrder = await tx.order.update({
       where: { id },
-      data: {
-        ...data,
-        updatedAt: new Date()
-      },
+      data: updateData,
       include: {
         user: {
           select: {
@@ -401,10 +407,11 @@ export async function getOrderStats(dateFrom?: Date, dateTo?: Date): Promise<Ord
   return {
     totalOrders,
     pendingOrders: statusCountMap.pending || 0,
-    paidOrders: statusCountMap.paid || 0,
+    processingOrders: statusCountMap.processing || 0,
     shippedOrders: statusCountMap.shipped || 0,
     deliveredOrders: statusCountMap.delivered || 0,
     cancelledOrders: statusCountMap.cancelled || 0,
+    refundedOrders: statusCountMap.refunded || 0,
     totalRevenue: revenueData._sum.totalAmount || 0,
     averageOrderValue: revenueData._avg.totalAmount || 0,
     todayOrders,

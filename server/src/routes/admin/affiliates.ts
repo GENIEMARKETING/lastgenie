@@ -1064,8 +1064,8 @@ router.post('/:id/connect-account', authenticate, async (req: AuthRequest, res) 
     // Create Stripe Connect account
     const account = await stripeService.createConnectAccount(
       affiliate.user.email,
-      affiliate.user.firstName,
-      affiliate.user.lastName
+      affiliate.user.firstName || '',
+      affiliate.user.lastName || ''
     );
 
     // Update affiliate with Stripe Connect ID

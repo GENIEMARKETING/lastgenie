@@ -29,7 +29,7 @@ export type ProductCategory =
 
 export type PackageSize = 
   | 'single'
-  | 'pack_12';
+  | 'twelve_pack';
 
 export type UserRole = 
   | 'customer'

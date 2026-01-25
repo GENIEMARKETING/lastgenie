@@ -34,7 +34,7 @@ const createProductSchema = z.object({
   imageUrl: z.string().url().optional(),
   images: z.array(z.string().url()).optional(),
   category: z.enum(['male', 'female']),
-  packageSize: z.enum(['single', 'pack_12']),
+  packageSize: z.enum(['single', 'twelve_pack']),
   isSubscribable: z.boolean().optional(),
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
@@ -249,7 +249,12 @@ router.post('/',
   async (req, res) => {
     try {
       const validatedData = createProductSchema.parse(req.body);
-      const product = await createProduct(validatedData);
+      // Transform packageSize from Zod enum to Prisma enum
+      const createData: any = { ...validatedData };
+      if (createData.packageSize === 'pack_12') {
+        createData.packageSize = 'twelve_pack';
+      }
+      const product = await createProduct(createData);
 
       const productWithImages = {
         ...product,
@@ -299,7 +304,13 @@ router.put('/:id',
       const { id } = req.params;
       const validatedData = updateProductSchema.parse(req.body);
 
-      const product = await updateProduct(id as string, validatedData);
+      // Transform packageSize from Zod enum to Prisma enum if present
+      const updateData: any = { ...validatedData };
+      if (updateData.packageSize === 'pack_12') {
+        updateData.packageSize = 'twelve_pack';
+      }
+
+      const product = await updateProduct(id as string, updateData);
 
       const productWithImages = {
         ...product,
@@ -432,7 +443,15 @@ router.post('/bulk-update',
   async (req, res) => {
     try {
       const validatedData = bulkUpdateSchema.parse(req.body);
-      const results = await bulkUpdateProducts(validatedData.updates);
+      // Transform packageSize from Zod enum to Prisma enum for each update
+      const transformedUpdates = validatedData.updates.map((update: any) => ({
+        ...update,
+        data: {
+          ...update.data,
+          packageSize: update.data?.packageSize === 'pack_12' ? 'twelve_pack' : update.data?.packageSize
+        }
+      }));
+      const results = await bulkUpdateProducts(transformedUpdates);
 
       const successful = results.filter((r: any) => r.success).length;
       const failed = results.filter((r: any) => !r.success).length;

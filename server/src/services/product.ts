@@ -188,7 +188,7 @@ export async function createProduct(data: CreateProductData) {
         imageUrl: data.imageUrl,
         images: data.images ? JSON.stringify(data.images) : undefined,
         category: data.category,
-        packageSize: data.packageSize,
+        packageSize: data.packageSize as any,
         isSubscribable: data.isSubscribable || false,
         isActive: data.isActive !== undefined ? data.isActive : true,
         isFeatured: data.isFeatured || false,
@@ -236,13 +236,21 @@ export async function updateProduct(id: string, data: UpdateProductData) {
     }
   }
 
+  const updateData: any = {
+    ...data,
+    images: data.images ? JSON.stringify(data.images) : undefined,
+    updatedAt: new Date()
+  };
+  // Ensure packageSize is properly typed if present
+  if (updateData.packageSize) {
+    updateData.packageSize = updateData.packageSize as any;
+  }
+  if (updateData.category) {
+    updateData.category = updateData.category as any;
+  }
   return await prisma.product.update({
     where: { id },
-    data: {
-      ...data,
-      images: data.images ? JSON.stringify(data.images) : undefined,
-      updatedAt: new Date()
-    },
+    data: updateData,
     include: {
       inventory: true,
       _count: {
@@ -434,7 +442,7 @@ export async function duplicateProduct(id: string, newSku: string, newName?: str
     imageUrl: originalProduct.imageUrl || undefined,
     images: originalProduct.images ? JSON.parse(originalProduct.images as string) : undefined,
     category: originalProduct.category,
-    packageSize: originalProduct.packageSize,
+    packageSize: originalProduct.packageSize as any,
     isSubscribable: originalProduct.isSubscribable,
     isActive: false, // Start as inactive for review
     isFeatured: false,
