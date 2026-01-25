@@ -1,9 +1,4 @@
-// Use require to avoid Prisma ESM/CJS issues
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { PrismaClient } = require('@prisma/client');
-
-// Type alias for PrismaClient
-type PrismaClientType = any;
+import { PrismaClient } from '@prisma/client';
 
 /**
  * PrismaClient singleton instance
@@ -11,14 +6,14 @@ type PrismaClientType = any;
  * proper connection pooling across the application
  */
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClientType | undefined;
+  prisma: PrismaClient | undefined;
 };
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is required (PostgreSQL connection string).');
 }
 
-export const prisma: PrismaClientType =
+export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
