@@ -207,7 +207,7 @@ router.post('/applications/:id/review', async (req: AuthRequest, res) => {
       // Log audit event
       await auditService.logAffiliateReview(
         req,
-        id,
+        id as string,
         'approved',
         { status: 'pending' },
         { status: 'approved', referralCode },
@@ -239,7 +239,7 @@ router.post('/applications/:id/review', async (req: AuthRequest, res) => {
       // Log audit event
       await auditService.logAffiliateReview(
         req,
-        id,
+        id as string,
         'rejected',
         { status: 'pending' },
         { status: 'rejected' },

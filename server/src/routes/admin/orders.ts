@@ -192,7 +192,7 @@ router.get('/by-user/:userId', ...requireAdminRead('orders'), async (req, res) =
     const { limit } = req.query;
 
     const orders = await getOrdersByUser(
-      userId, 
+      userId as string, 
       limit ? parseInt(limit as string) : undefined
     );
 
@@ -216,7 +216,7 @@ router.get('/by-user/:userId', ...requireAdminRead('orders'), async (req, res) =
 router.get('/number/:orderNumber', ...requireAdminRead('orders'), async (req, res) => {
   try {
     const { orderNumber } = req.params;
-    const order = await getOrderByNumber(orderNumber);
+    const order = await getOrderByNumber(orderNumber as string);
 
     if (!order) {
       return res.status(404).json({
@@ -245,7 +245,7 @@ router.get('/number/:orderNumber', ...requireAdminRead('orders'), async (req, re
 router.get('/:id', ...requireAdminRead('orders'), async (req, res) => {
   try {
     const { id } = req.params;
-    const order = await getOrderById(id);
+    const order = await getOrderById(id as string);
 
     if (!order) {
       return res.status(404).json({
@@ -291,7 +291,7 @@ router.put('/:id',
       const { id } = req.params;
       const validatedData = updateOrderSchema.parse(req.body);
 
-      const order = await updateOrder(id, validatedData, req.user!.id);
+      const order = await updateOrder(id as string, validatedData, req.user!.id);
 
       res.json({
         success: true,
@@ -347,7 +347,7 @@ router.put('/:id/status',
       if (shippingCarrier) updateData.shippingCarrier = shippingCarrier;
       if (trackingNumber) updateData.trackingNumber = trackingNumber;
 
-      const order = await updateOrder(id, updateData, req.user!.id);
+      const order = await updateOrder(id as string, updateData, req.user!.id);
 
       res.json({
         success: true,
@@ -429,7 +429,7 @@ router.post('/:id/cancel',
       const { id } = req.params;
       const validatedData = cancelOrderSchema.parse(req.body);
 
-      const order = await cancelOrder(id, validatedData.reason, req.user!.id);
+      const order = await cancelOrder(id as string, validatedData.reason, req.user!.id);
 
       res.json({
         success: true,
@@ -491,7 +491,7 @@ router.post('/:id/add-tracking',
         });
       }
 
-      const order = await updateOrder(id, {
+      const order = await updateOrder(id as string, {
         shippingCarrier,
         trackingNumber,
         status: 'shipped' // Automatically mark as shipped when tracking is added

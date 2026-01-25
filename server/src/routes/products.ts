@@ -283,7 +283,7 @@ router.post('/:productSku/reviews', authenticate, async (req: AuthRequest, res) 
     // Check if user has purchased this product (for verified purchase)
     const hasPurchased = await prisma.orderItem.findFirst({
       where: {
-        productSku: productSku,
+        product: { sku: productSku as string },
         order: {
           userId: req.user.id,
           status: 'delivered' // Only count delivered orders

@@ -212,7 +212,7 @@ router.get('/low-stock', ...requireAdminRead('products'), async (req, res) => {
 router.get('/:id', ...requireAdminRead('products'), async (req, res) => {
   try {
     const { id } = req.params;
-    const product = await getProductById(id);
+    const product = await getProductById(id as string);
 
     if (!product) {
       return res.status(404).json({
@@ -299,7 +299,7 @@ router.put('/:id',
       const { id } = req.params;
       const validatedData = updateProductSchema.parse(req.body);
 
-      const product = await updateProduct(id, validatedData);
+      const product = await updateProduct(id as string, validatedData);
 
       const productWithImages = {
         ...product,
@@ -354,7 +354,7 @@ router.delete('/:id',
   async (req, res) => {
     try {
       const { id } = req.params;
-      const product = await deleteProduct(id);
+      const product = await deleteProduct(id as string);
 
       res.json({
         success: true,
@@ -398,7 +398,7 @@ router.delete('/:id/permanent',
         });
       }
 
-      await permanentlyDeleteProduct(id);
+      await permanentlyDeleteProduct(id as string);
 
       res.json({
         success: true,
@@ -473,7 +473,7 @@ router.post('/:id/duplicate',
       const { id } = req.params;
       const validatedData = duplicateProductSchema.parse(req.body);
 
-      const product = await duplicateProduct(id, validatedData.newSku, validatedData.newName);
+      const product = await duplicateProduct(id as string, validatedData.newSku, validatedData.newName);
 
       const productWithImages = {
         ...product,

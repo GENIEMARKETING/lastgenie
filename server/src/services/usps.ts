@@ -118,7 +118,7 @@ class USPSService {
   /**
    * Get OAuth2 access token using client credentials flow
    */
-  private async getAccessToken(): Promise<string> {
+  private async getAccessToken(): Promise<string | null> {
     // Check if token is still valid
     if (this.accessToken && Date.now() < this.tokenExpiry) {
       console.log('[USPS] Using cached access token');

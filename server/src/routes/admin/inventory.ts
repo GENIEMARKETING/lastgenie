@@ -142,7 +142,7 @@ router.get('/low-stock', ...requireAdminRead('inventory'), async (req, res) => {
 router.get('/:productId', ...requireAdminRead('inventory'), async (req, res) => {
   try {
     const { productId } = req.params;
-    const inventory = await getProductInventory(productId);
+    const inventory = await getProductInventory(productId as string);
 
     if (!inventory) {
       return res.status(404).json({
@@ -173,7 +173,7 @@ router.get('/:productId/movements', ...requireAdminRead('inventory'), async (req
     const { productId } = req.params;
     const { limit = '50' } = req.query;
 
-    const movements = await getStockMovementHistory(productId, parseInt(limit as string));
+    const movements = await getStockMovementHistory(productId as string, parseInt(limit as string));
 
     res.json({
       success: true,
@@ -329,7 +329,7 @@ router.put('/:productId',
       const { productId } = req.params;
       const validatedData = updateInventorySchema.parse(req.body);
 
-      const updatedInventory = await updateInventory(productId, validatedData);
+      const updatedInventory = await updateInventory(productId as string, validatedData);
 
       res.json({
         success: true,
