@@ -9,8 +9,9 @@ import { app } from "./app";
 verifyEnvLoaded();
 
 const port = Number(process.env.PORT ?? 3001);
+const host = process.env.HOST ?? '0.0.0.0';
 
-app.listen(port, () => {
+app.listen(port, host, () => {
   // eslint-disable-next-line no-console
-  console.log(`lastgenie server running on port ${port}`);
+  console.log(`lastgenie server running on ${host}:${port}`);
 });
