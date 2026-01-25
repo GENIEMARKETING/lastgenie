@@ -168,7 +168,7 @@ class ShippoService {
         let errorData: any = {};
         try {
           errorData = await response.json();
-        } catch (jsonError) {
+        } catch (jsonError: any) {
           console.warn('Shippo API returned non-JSON error response:', response.status, response.statusText);
         }
         
@@ -481,7 +481,7 @@ class ShippoService {
         let errorData: any = {};
         try {
           errorData = await response.json();
-        } catch (jsonError) {
+        } catch (jsonError: any) {
           console.warn('Shippo API returned non-JSON error response:', response.status, response.statusText);
         }
         

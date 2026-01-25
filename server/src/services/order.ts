@@ -172,7 +172,7 @@ export async function getOrderById(id: string) {
           affiliate: {
             select: {
               referralCode: true,
-              commissionAmount: true,
+              commissionRate: true,
               user: {
                 select: {
                   email: true,

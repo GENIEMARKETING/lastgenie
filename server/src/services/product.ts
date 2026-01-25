@@ -186,7 +186,7 @@ export async function createProduct(data: CreateProductData) {
         price: data.price,
         originalPrice: data.originalPrice,
         imageUrl: data.imageUrl,
-        images: data.images ? JSON.stringify(data.images) : null,
+        images: data.images ? JSON.stringify(data.images) : undefined,
         category: data.category,
         packageSize: data.packageSize,
         isSubscribable: data.isSubscribable || false,
@@ -294,7 +294,7 @@ export async function permanentlyDeleteProduct(id: string) {
 
     // Delete reviews
     await tx.review.deleteMany({
-      where: { productId: id }
+      where: { product: { id } }
     });
 
     // Finally delete the product

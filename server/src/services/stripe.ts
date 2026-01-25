@@ -438,7 +438,7 @@ class StripeService {
         
         // Find matching product by name (since we created prices on-the-fly)
         const product = await prisma.product.findFirst({
-          where: { name: productName },
+          where: { name: productName || undefined },
         });
 
         if (product) {

@@ -277,7 +277,7 @@ router.post('/:id/set-default', authenticate, async (req: AuthRequest, res) => {
       where: {
         userId: req.user.id,
         type: existingAddress.type,
-        id: { not: id }
+        id: { not: id as string }
       },
       data: {
         isDefault: false
