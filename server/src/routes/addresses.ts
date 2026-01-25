@@ -69,7 +69,7 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
       stack: error instanceof Error ? error.stack : undefined,
       userId: req.user?.id,
       userEmail: req.user?.email,
-      queryType: type,
+      queryType: req.query.type,
       requestPath: req.path,
       requestMethod: req.method,
       timestamp: new Date().toISOString(),
@@ -150,7 +150,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     // Check if address belongs to user
     const existingAddress = await prisma.address.findFirst({
       where: {
-        id,
+        id: id as string,
         userId: req.user.id
       }
     });
@@ -169,7 +169,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
         where: {
           userId: req.user.id,
           type: addressType,
-          id: { not: id }
+          id: { not: id as string }
         },
         data: {
           isDefault: false
@@ -178,7 +178,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     }
     
     const address = await prisma.address.update({
-      where: { id },
+      where: { id: id as string },
       data: validatedData
     });
     
@@ -213,7 +213,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
     // Check if address belongs to user
     const existingAddress = await prisma.address.findFirst({
       where: {
-        id,
+        id: id as string,
         userId: req.user.id
       }
     });
@@ -226,7 +226,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
     }
     
     await prisma.address.delete({
-      where: { id }
+      where: { id: id as string }
     });
     
     res.json({
@@ -260,7 +260,7 @@ router.post('/:id/set-default', authenticate, async (req: AuthRequest, res) => {
     // Check if address belongs to user
     const existingAddress = await prisma.address.findFirst({
       where: {
-        id,
+        id: id as string,
         userId: req.user.id
       }
     });
@@ -286,7 +286,7 @@ router.post('/:id/set-default', authenticate, async (req: AuthRequest, res) => {
     
     // Set this address as default
     const address = await prisma.address.update({
-      where: { id },
+      where: { id: id as string },
       data: {
         isDefault: true
       }

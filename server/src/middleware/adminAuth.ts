@@ -67,7 +67,7 @@ export function auditAdminAction(action: string, entity: string) {
         auditService.log(req, {
           action,
           entity,
-          entityId: req.params.id || 'bulk',
+          entityId: (req.params.id as string) || 'bulk',
           newValues: req.body,
           metadata: {
             method: req.method,

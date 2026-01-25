@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus } from '../types/prisma-types';
 import { confirmStockSale } from './inventory';
 import { sseManager, SSEEvents } from './sse';
 
@@ -318,7 +318,7 @@ export async function bulkUpdateOrderStatus(
   adminUserId: string,
   trackingInfo?: { carrier?: string; trackingNumber?: string }
 ) {
-  const results = [];
+  const results: any[] = [];
 
   for (const orderId of orderIds) {
     try {

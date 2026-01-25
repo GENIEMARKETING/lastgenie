@@ -84,7 +84,7 @@ export async function trackAffiliateClick(
     // Fraud detection checks
     const fraudCheck = await performFraudDetection(affiliate.id, context);
     if (!fraudCheck.isValid) {
-      return { success: false, message: fraudCheck.reason };
+      return { success: false, message: fraudCheck.reason || 'Fraud detected' };
     }
 
     // Create click record

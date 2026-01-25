@@ -13,15 +13,15 @@ const auditLogFiltersSchema = z.object({
   entityId: z.string().optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
-  page: z.string().transform(Number).default('1'),
-  limit: z.string().transform(Number).default('50')
+  page: z.string().transform(Number).default(1),
+  limit: z.string().transform(Number).default(50)
 });
 
 /**
  * GET /api/admin/audit-logs
  * Get audit logs with filtering (admin only)
  */
-router.get('/', authenticate, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
+router.get('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
   try {
     const validatedQuery = auditLogFiltersSchema.parse(req.query);
     const { userId, action, entity, entityId, startDate, endDate, page, limit } = validatedQuery;
@@ -114,7 +114,7 @@ router.get('/', authenticate, requireRole(['admin', 'super_admin']), async (req:
  * GET /api/admin/audit-logs/stats
  * Get audit log statistics (admin only)
  */
-router.get('/stats', authenticate, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
+router.get('/stats', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
   try {
     const now = new Date();
     const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -252,12 +252,12 @@ router.get('/stats', authenticate, requireRole(['admin', 'super_admin']), async 
  * GET /api/admin/audit-logs/:id
  * Get specific audit log entry (admin only)
  */
-router.get('/:id', authenticate, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
+router.get('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     
     const log = await prisma.auditLog.findUnique({
-      where: { id },
+      where: { id: id as string },
       include: {
         user: {
           select: {

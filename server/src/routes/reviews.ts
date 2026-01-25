@@ -168,7 +168,7 @@ router.post('/', async (req, res) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ 
         error: 'Invalid review data',
-        details: error.errors
+        details: error.issues
       });
     }
     

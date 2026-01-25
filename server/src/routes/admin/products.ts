@@ -1,6 +1,6 @@
 import express from 'express';
 import { z } from 'zod';
-import { ProductCategory, PackageSize } from '@prisma/client';
+import { ProductCategory, PackageSize } from '../../types/prisma-types';
 import {
   requireAdminRead,
   requireAdminWrite,
@@ -33,8 +33,8 @@ const createProductSchema = z.object({
   originalPrice: z.number().positive().optional(),
   imageUrl: z.string().url().optional(),
   images: z.array(z.string().url()).optional(),
-  category: z.nativeEnum(ProductCategory),
-  packageSize: z.nativeEnum(PackageSize),
+  category: z.enum(['male', 'female']),
+  packageSize: z.enum(['single', 'pack_12']),
   isSubscribable: z.boolean().optional(),
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
@@ -53,8 +53,8 @@ const updateProductSchema = z.object({
   originalPrice: z.number().positive().optional(),
   imageUrl: z.string().url().optional(),
   images: z.array(z.string().url()).optional(),
-  category: z.nativeEnum(ProductCategory).optional(),
-  packageSize: z.nativeEnum(PackageSize).optional(),
+  category: z.enum(['male', 'female']).optional(),
+  packageSize: z.enum(['single', 'pack_12']).optional(),
   isSubscribable: z.boolean().optional(),
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
@@ -268,7 +268,7 @@ router.post('/',
         return res.status(400).json({
           success: false,
           error: 'Invalid request data',
-          details: error.errors
+          details: error.issues
         });
       }
 
@@ -318,7 +318,7 @@ router.put('/:id',
         return res.status(400).json({
           success: false,
           error: 'Invalid request data',
-          details: error.errors
+          details: error.issues
         });
       }
 
@@ -434,8 +434,8 @@ router.post('/bulk-update',
       const validatedData = bulkUpdateSchema.parse(req.body);
       const results = await bulkUpdateProducts(validatedData.updates);
 
-      const successful = results.filter(r => r.success).length;
-      const failed = results.filter(r => !r.success).length;
+      const successful = results.filter((r: any) => r.success).length;
+      const failed = results.filter((r: any) => !r.success).length;
 
       res.json({
         success: true,
@@ -449,7 +449,7 @@ router.post('/bulk-update',
         return res.status(400).json({
           success: false,
           error: 'Invalid request data',
-          details: error.errors
+          details: error.issues
         });
       }
 
@@ -492,7 +492,7 @@ router.post('/:id/duplicate',
         return res.status(400).json({
           success: false,
           error: 'Invalid request data',
-          details: error.errors
+          details: error.issues
         });
       }
 

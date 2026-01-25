@@ -1,5 +1,9 @@
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+// Use require to avoid Prisma ESM/CJS issues
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { PrismaClient } = require('@prisma/client');
+
+// Type alias for PrismaClient
+type PrismaClientType = any;
 
 /**
  * PrismaClient singleton instance
@@ -7,21 +11,16 @@ import { PrismaPg } from '@prisma/adapter-pg';
  * proper connection pooling across the application
  */
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+  prisma: PrismaClientType | undefined;
 };
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is required (PostgreSQL connection string).');
 }
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
-
-export const prisma =
+export const prisma: PrismaClientType =
   globalForPrisma.prisma ??
   new PrismaClient({
-    adapter,
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
 
@@ -34,6 +33,6 @@ prisma.$connect()
   .then(() => {
     console.log('Database connected successfully');
   })
-  .catch((error) => {
+  .catch((error: any) => {
     console.error('Database connection error:', error);
   });

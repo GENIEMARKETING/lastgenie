@@ -123,7 +123,7 @@ router.post('/applications/:id/review', async (req: AuthRequest, res) => {
 
     // Find the application
     const application = await prisma.affiliateApplication.findUnique({
-      where: { id },
+      where: { id: id as string },
       include: {
         user: true
       }
@@ -194,7 +194,7 @@ router.post('/applications/:id/review', async (req: AuthRequest, res) => {
           }
         }),
         prisma.affiliateApplication.update({
-          where: { id },
+          where: { id: id as string },
           data: {
             status: 'approved',
             adminNotes: validatedData.adminNotes,
@@ -227,7 +227,7 @@ router.post('/applications/:id/review', async (req: AuthRequest, res) => {
     } else {
       // Reject application
       await prisma.affiliateApplication.update({
-        where: { id },
+        where: { id: id as string },
         data: {
           status: 'rejected',
           adminNotes: validatedData.adminNotes,
@@ -377,7 +377,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     const validatedData = updateAffiliateSchema.parse(req.body);
 
     const affiliate = await prisma.affiliate.findUnique({
-      where: { id },
+      where: { id: id as string },
       include: {
         user: {
           select: {
@@ -397,7 +397,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     }
 
     const updatedAffiliate = await prisma.affiliate.update({
-      where: { id },
+      where: { id: id as string },
       data: validatedData,
       include: {
         user: {
@@ -821,7 +821,7 @@ router.put('/payouts/:id', authenticate, async (req: AuthRequest, res) => {
     const validatedData = updatePayoutSchema.parse(req.body);
 
     const payout = await prisma.affiliatePayout.findUnique({
-      where: { id },
+      where: { id: id as string },
       include: {
         affiliate: true
       }
@@ -836,7 +836,7 @@ router.put('/payouts/:id', authenticate, async (req: AuthRequest, res) => {
 
     // Update payout status
     const updatedPayout = await prisma.affiliatePayout.update({
-      where: { id },
+      where: { id: id as string },
       data: {
         status: validatedData.status,
         failureReason: validatedData.failureReason,
@@ -914,7 +914,7 @@ router.get('/:id/performance', authenticate, async (req: AuthRequest, res) => {
     startDate.setDate(startDate.getDate() - days);
 
     const affiliate = await prisma.affiliate.findUnique({
-      where: { id },
+      where: { id: id as string },
       include: {
         user: {
           select: {
@@ -943,20 +943,20 @@ router.get('/:id/performance', authenticate, async (req: AuthRequest, res) => {
     ] = await Promise.all([
       prisma.affiliateClick.count({
         where: {
-          affiliateId: id,
+          affiliateId: id as string,
           createdAt: { gte: startDate }
         }
       }),
       prisma.affiliateConversion.count({
         where: {
-          affiliateId: id,
+          affiliateId: id as string,
           createdAt: { gte: startDate }
         }
       }),
       prisma.affiliateClick.groupBy({
         by: ['createdAt'],
         where: {
-          affiliateId: id,
+          affiliateId: id as string,
           createdAt: { gte: startDate }
         },
         _count: true,
@@ -967,7 +967,7 @@ router.get('/:id/performance', authenticate, async (req: AuthRequest, res) => {
       prisma.affiliateConversion.groupBy({
         by: ['createdAt'],
         where: {
-          affiliateId: id,
+          affiliateId: id as string,
           createdAt: { gte: startDate }
         },
         _count: true,
@@ -981,7 +981,7 @@ router.get('/:id/performance', authenticate, async (req: AuthRequest, res) => {
       prisma.affiliateClick.groupBy({
         by: ['referer'],
         where: {
-          affiliateId: id,
+          affiliateId: id as string,
           createdAt: { gte: startDate },
           referer: { not: null }
         },
@@ -1035,7 +1035,7 @@ router.post('/:id/connect-account', authenticate, async (req: AuthRequest, res) 
 
     const { id } = req.params;
     const affiliate = await prisma.affiliate.findUnique({
-      where: { id },
+      where: { id: id as string },
       include: {
         user: {
           select: {
@@ -1070,7 +1070,7 @@ router.post('/:id/connect-account', authenticate, async (req: AuthRequest, res) 
 
     // Update affiliate with Stripe Connect ID
     const updatedAffiliate = await prisma.affiliate.update({
-      where: { id },
+      where: { id: id as string },
       data: {
         stripeConnectId: account.id
       }
@@ -1115,7 +1115,7 @@ router.get('/:id/connect-status', authenticate, async (req: AuthRequest, res) =>
 
     const { id } = req.params;
     const affiliate = await prisma.affiliate.findUnique({
-      where: { id }
+      where: { id: id as string }
     });
 
     if (!affiliate) {

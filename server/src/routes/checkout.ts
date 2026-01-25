@@ -12,7 +12,7 @@ const conditionalAuth = (req: Request, res: Response, next: NextFunction) => {
   // If guest info is provided, skip authentication
   if (req.body.guestInfo) {
     // Set user to null for guest checkout
-    (req as AuthRequest).user = null;
+    (req as any).user = undefined;
     next();
   } else {
     // Require authentication for regular checkout
@@ -135,7 +135,7 @@ router.post('/session', conditionalAuth, async (req: AuthRequest, res) => {
     } else {
       // Use authenticated user data
       const userDetails = await prisma.user.findUnique({
-        where: { id: req.user.id },
+        where: { id: req.user!.id },
         select: {
           email: true,
           firstName: true,
@@ -233,7 +233,7 @@ router.post('/estimate', async (req, res) => {
 
     // Calculate subtotal with real prices
     let subtotal = 0;
-    const itemDetails = [];
+    const itemDetails: any[] = [];
     
     for (const item of validatedData.items) {
       const product = products.find(p => p.sku === item.productId);
@@ -266,9 +266,9 @@ router.post('/estimate', async (req, res) => {
             quantity: item.quantity
           })),
           shippingAddress: {
-            name: validatedData.shippingAddress.name || 'Customer',
+            name: (validatedData.shippingAddress as any).name || 'Customer',
             street1: validatedData.shippingAddress.street1,
-            street2: validatedData.shippingAddress.street2,
+            street2: (validatedData.shippingAddress as any).street2,
             city: validatedData.shippingAddress.city,
             state: validatedData.shippingAddress.state,
             postalCode: validatedData.shippingAddress.postalCode,
@@ -284,10 +284,10 @@ router.post('/estimate', async (req, res) => {
         });
         
         if (shippingResponse.ok) {
-          const shippingData = await shippingResponse.json();
-          if (shippingData.success && shippingData.data.rates.length > 0) {
+          const shippingData: any = await shippingResponse.json();
+          if (shippingData.success && shippingData.data?.rates?.length > 0) {
             // Use the cheapest rate
-            const cheapestRate = shippingData.data.rates.reduce((min, rate) => 
+            const cheapestRate = shippingData.data.rates.reduce((min: any, rate: any) => 
               parseFloat(rate.amount) < parseFloat(min.amount) ? rate : min
             );
             shipping = parseFloat(cheapestRate.amount);

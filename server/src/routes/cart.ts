@@ -228,7 +228,7 @@ router.put('/:itemId', authenticate, async (req: AuthRequest, res) => {
     // Verify the cart item belongs to the user
     const cartItem = await prisma.cartItem.findFirst({
       where: {
-        id: itemId,
+        id: itemId as string,
         cart: {
           userId: req.user.id,
         },
@@ -255,7 +255,7 @@ router.put('/:itemId', authenticate, async (req: AuthRequest, res) => {
 
     // Update the cart item
     const updatedItem = await prisma.cartItem.update({
-      where: { id: itemId },
+      where: { id: itemId as string },
       data: { quantity: validatedData.quantity },
       include: {
         product: {
@@ -272,11 +272,11 @@ router.put('/:itemId', authenticate, async (req: AuthRequest, res) => {
 
     const responseItem = {
       id: updatedItem.id,
-      productId: updatedItem.product.sku,
-      name: updatedItem.product.name,
-      price: updatedItem.product.price,
+      productId: (updatedItem as any).product?.sku || '',
+      name: (updatedItem as any).product?.name || '',
+      price: (updatedItem as any).product?.price || 0,
       quantity: updatedItem.quantity,
-      image: updatedItem.product.imageUrl || '',
+      image: (updatedItem as any).product?.imageUrl || '',
       isSubscription: updatedItem.isSubscription,
     };
 
@@ -321,7 +321,7 @@ router.delete('/:itemId', authenticate, async (req: AuthRequest, res) => {
     // Verify the cart item belongs to the user before deleting
     const cartItem = await prisma.cartItem.findFirst({
       where: {
-        id: itemId,
+        id: itemId as string,
         cart: {
           userId: req.user.id,
         },
@@ -336,7 +336,7 @@ router.delete('/:itemId', authenticate, async (req: AuthRequest, res) => {
     }
 
     await prisma.cartItem.delete({
-      where: { id: itemId },
+      where: { id: itemId as string },
     });
 
     res.json({

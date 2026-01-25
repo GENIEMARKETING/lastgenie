@@ -391,7 +391,7 @@ class StripeService {
         });
       } else {
         // Fallback to creating address from Stripe session data
-        const shippingDetails = session.shipping_details || session.customer_details;
+        const shippingDetails = (session as any).shipping_details || (session as any).customer_details;
         if (!shippingDetails?.address) {
           throw new Error('No shipping address found in session');
         }
@@ -399,11 +399,11 @@ class StripeService {
         shippingAddress = await prisma.address.create({
           data: {
             userId: user.id,
-            streetAddress: shippingDetails.address.line1 || '',
-            city: shippingDetails.address.city || '',
-            state: shippingDetails.address.state || '',
-            zipCode: shippingDetails.address.postal_code || '',
-            country: shippingDetails.address.country || 'US',
+            streetAddress: shippingDetails.address?.line1 || '',
+            city: shippingDetails.address?.city || '',
+            state: shippingDetails.address?.state || '',
+            zipCode: shippingDetails.address?.postal_code || '',
+            country: shippingDetails.address?.country || 'US',
             type: 'shipping',
           },
         });
@@ -498,11 +498,11 @@ class StripeService {
           tax: order.taxAmount || 0,
           total: order.totalAmount,
           shippingAddress: {
-            street1: address.streetAddress,
+            street1: shippingAddress?.streetAddress || '',
             street2: undefined,
-            city: address.city,
-            state: address.state,
-            zipCode: address.zipCode
+            city: shippingAddress?.city || '',
+            state: shippingAddress?.state || '',
+            zipCode: shippingAddress?.zipCode || ''
           }
         };
 

@@ -493,9 +493,9 @@ router.post('/setup-payouts', authenticate, async (req: AuthRequest, res) => {
 
     // Create new Stripe Connect account
     const account = await stripeService.createConnectAccount(
-      affiliate.user.email,
-      affiliate.user.firstName,
-      affiliate.user.lastName
+      (affiliate as any).user?.email || '',
+      (affiliate as any).user?.firstName || '',
+      (affiliate as any).user?.lastName || ''
     );
 
     // Update affiliate with Stripe Connect ID

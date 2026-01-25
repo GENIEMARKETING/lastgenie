@@ -1,5 +1,8 @@
 import nodemailer from 'nodemailer';
 
+// Check if email service is properly configured
+const isEmailConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+
 const transporter = nodemailer.createTransport({
   // Use environment variables for SMTP config
   // For development, can use console.log or test account

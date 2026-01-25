@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma';
-import { StockMovementType } from '@prisma/client';
+import { StockMovementType } from '../types/prisma-types';
 import { sseManager, SSEEvents } from './sse';
 
 export interface InventoryUpdateData {
@@ -292,7 +292,7 @@ export async function bulkRestock(restockData: Array<{
   reason?: string;
   adminUserId: string;
 }>) {
-  const results = [];
+  const results: any[] = [];
   
   for (const item of restockData) {
     try {
@@ -386,7 +386,7 @@ export async function getInventoryStats() {
  * Reserve stock for an order
  */
 export async function reserveStock(orderId: string, items: Array<{ productId: string; quantity: number }>) {
-  const results = [];
+  const results: any[] = [];
 
   for (const item of items) {
     try {
@@ -414,7 +414,7 @@ export async function reserveStock(orderId: string, items: Array<{ productId: st
  * Confirm stock sale (convert reserved to sold)
  */
 export async function confirmStockSale(orderId: string, items: Array<{ productId: string; quantity: number }>) {
-  const results = [];
+  const results: any[] = [];
 
   for (const item of items) {
     try {

@@ -1,6 +1,6 @@
 import express from 'express';
 import { z } from 'zod';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus } from '../../types/prisma-types';
 import {
   requireAdminRead,
   requireAdminWrite,
@@ -24,7 +24,7 @@ const router = express.Router();
 
 // Validation schemas
 const updateOrderSchema = z.object({
-  status: z.nativeEnum(OrderStatus).optional(),
+  status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded']).optional(),
   shippingCarrier: z.string().optional(),
   trackingNumber: z.string().optional(),
   shippingAmount: z.number().min(0).optional(),
@@ -33,7 +33,7 @@ const updateOrderSchema = z.object({
 
 const bulkUpdateSchema = z.object({
   orderIds: z.array(z.string().cuid()),
-  status: z.nativeEnum(OrderStatus),
+  status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded']),
   trackingInfo: z.object({
     carrier: z.string().optional(),
     trackingNumber: z.string().optional()
@@ -257,13 +257,13 @@ router.get('/:id', ...requireAdminRead('orders'), async (req, res) => {
     // Parse product images if they exist
     const orderWithImages = {
       ...order,
-      items: order.items.map(item => ({
+      items: (order as any).items?.map((item: any) => ({
         ...item,
         product: {
           ...item.product,
-          images: item.product.images ? JSON.parse(item.product.images as string) : []
+          images: item.product?.images ? JSON.parse(item.product.images as string) : []
         }
-      }))
+      })) || []
     };
 
     res.json({
@@ -305,7 +305,7 @@ router.put('/:id',
         return res.status(400).json({
           success: false,
           error: 'Invalid request data',
-          details: error.errors
+          details: error.issues
         });
       }
 
@@ -336,7 +336,8 @@ router.put('/:id/status',
       const { id } = req.params;
       const { status, shippingCarrier, trackingNumber } = req.body;
 
-      if (!status || !Object.values(OrderStatus).includes(status)) {
+      const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'];
+      if (!status || !validStatuses.includes(status)) {
         return res.status(400).json({
           success: false,
           error: 'Valid status is required'
@@ -390,8 +391,8 @@ router.post('/bulk-update-status',
         validatedData.trackingInfo
       );
 
-      const successful = results.filter(r => r.success).length;
-      const failed = results.filter(r => !r.success).length;
+      const successful = results.filter((r: any) => r.success).length;
+      const failed = results.filter((r: any) => !r.success).length;
 
       res.json({
         success: true,
@@ -405,7 +406,7 @@ router.post('/bulk-update-status',
         return res.status(400).json({
           success: false,
           error: 'Invalid request data',
-          details: error.errors
+          details: error.issues
         });
       }
 
@@ -443,7 +444,7 @@ router.post('/:id/cancel',
         return res.status(400).json({
           success: false,
           error: 'Invalid request data',
-          details: error.errors
+          details: error.issues
         });
       }
 

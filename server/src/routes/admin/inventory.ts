@@ -19,7 +19,7 @@ import {
   reserveStock,
   confirmStockSale
 } from '../../services/inventory';
-import { StockMovementType } from '@prisma/client';
+import { StockMovementType } from '../../types/prisma-types';
 
 const router = express.Router();
 
@@ -46,7 +46,7 @@ const updateInventorySchema = z.object({
 
 const stockMovementSchema = z.object({
   productId: z.string().cuid(),
-  type: z.nativeEnum(StockMovementType),
+  type: z.enum(['purchase', 'sale', 'adjustment', 'return', 'transfer', 'restock', 'damaged', 'expired', 'reserved', 'unreserved']),
   quantity: z.number().int(),
   reason: z.string().optional(),
   orderId: z.string().optional()
@@ -260,7 +260,7 @@ router.post('/restock',
         return res.status(400).json({
           success: false,
           error: 'Invalid request data',
-          details: error.errors
+          details: error.issues
         });
       }
 
@@ -290,8 +290,8 @@ router.post('/bulk-restock',
 
       const results = await bulkRestock(restockData);
 
-      const successful = results.filter(r => r.success).length;
-      const failed = results.filter(r => !r.success).length;
+      const successful = results.filter((r: any) => r.success).length;
+      const failed = results.filter((r: any) => !r.success).length;
 
       res.json({
         success: true,
@@ -305,7 +305,7 @@ router.post('/bulk-restock',
         return res.status(400).json({
           success: false,
           error: 'Invalid request data',
-          details: error.errors
+          details: error.issues
         });
       }
 
@@ -343,7 +343,7 @@ router.put('/:productId',
         return res.status(400).json({
           success: false,
           error: 'Invalid request data',
-          details: error.errors
+          details: error.issues
         });
       }
 
@@ -389,7 +389,7 @@ router.post('/movement',
         return res.status(400).json({
           success: false,
           error: 'Invalid request data',
-          details: error.errors
+          details: error.issues
         });
       }
 
@@ -414,8 +414,8 @@ router.post('/reserve',
       
       const results = await reserveStock(validatedData.orderId, validatedData.items);
 
-      const successful = results.filter(r => r.success).length;
-      const failed = results.filter(r => !r.success).length;
+      const successful = results.filter((r: any) => r.success).length;
+      const failed = results.filter((r: any) => !r.success).length;
 
       res.json({
         success: true,
@@ -429,7 +429,7 @@ router.post('/reserve',
         return res.status(400).json({
           success: false,
           error: 'Invalid request data',
-          details: error.errors
+          details: error.issues
         });
       }
 
@@ -454,8 +454,8 @@ router.post('/confirm-sale',
       
       const results = await confirmStockSale(validatedData.orderId, validatedData.items);
 
-      const successful = results.filter(r => r.success).length;
-      const failed = results.filter(r => !r.success).length;
+      const successful = results.filter((r: any) => r.success).length;
+      const failed = results.filter((r: any) => !r.success).length;
 
       res.json({
         success: true,
@@ -469,7 +469,7 @@ router.post('/confirm-sale',
         return res.status(400).json({
           success: false,
           error: 'Invalid request data',
-          details: error.errors
+          details: error.issues
         });
       }
 

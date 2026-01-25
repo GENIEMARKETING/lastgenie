@@ -165,7 +165,7 @@ class ShippoService {
       });
 
       if (!response.ok) {
-        let errorData = {};
+        let errorData: any = {};
         try {
           errorData = await response.json();
         } catch (jsonError) {
@@ -198,9 +198,9 @@ class ShippoService {
         }
         
         data = await response.json();
-      } catch (jsonError) {
+      } catch (jsonError: any) {
         console.error('Failed to parse Shippo API response as JSON:', {
-          error: jsonError.message,
+          error: jsonError?.message,
           status: response.status,
           contentType: response.headers.get('content-type')
         });
@@ -300,9 +300,9 @@ class ShippoService {
           country: data.country_code || 'US',
           phone: data.phone || '',
         };
-      } catch (jsonError) {
+      } catch (jsonError: any) {
         console.error('Failed to parse Shippo address parsing response as JSON:', {
-          error: jsonError.message,
+          error: jsonError?.message,
           status: response.status,
           contentType: response.headers.get('content-type')
         });
@@ -478,7 +478,7 @@ class ShippoService {
       );
 
       if (!response.ok) {
-        let errorData = {};
+        let errorData: any = {};
         try {
           errorData = await response.json();
         } catch (jsonError) {
@@ -537,9 +537,9 @@ class ShippoService {
         }
         
         data = await response.json();
-      } catch (jsonError) {
+      } catch (jsonError: any) {
         console.error('Failed to parse Shippo API response as JSON:', {
-          error: jsonError.message,
+          error: jsonError?.message,
           status: response.status,
           contentType: response.headers.get('content-type')
         });
@@ -669,8 +669,8 @@ class ShippoService {
 
       // First, try parsing the input address string if it's unstructured
       // This helps extract unit numbers that might be embedded in street1
-      let parsedAddress = null;
-      let addressToValidate = { ...address };
+      let parsedAddress: any = null;
+      let addressToValidate: any = { ...address };
       
       if (address.street1 && !address.street2) {
         // If user entered address as a single string, try parsing it

@@ -155,14 +155,14 @@ class USPSService {
         return null;
       }
 
-      const data = await response.json();
+      const data: any = await response.json();
       this.accessToken = data.access_token;
       // Set expiry 5 minutes before actual expiry for safety
       const expiresIn = data.expires_in || 3600; // Default to 1 hour if not provided
       this.tokenExpiry = Date.now() + (expiresIn - 300) * 1000;
       
       console.log('[USPS] OAuth2 token acquired successfully:', {
-        tokenPrefix: this.accessToken.substring(0, 10) + '...',
+        tokenPrefix: this.accessToken?.substring(0, 10) + '...',
         expiresIn: expiresIn,
         expiresAt: new Date(this.tokenExpiry).toISOString(),
       });
@@ -262,13 +262,13 @@ class USPSService {
         return null;
       }
 
-      const result = await response.json();
+      const result = await response.json() as USPSAddressResponse;
       console.log('[USPS] Address validation successful:', {
         hasAddress: !!result.address,
-        hasCorrections: !!result.corrections?.length,
-        hasMatches: !!result.matches?.length,
-        corrections: result.corrections?.map((c: any) => c.code),
-        matches: result.matches?.map((m: any) => m.code),
+        hasCorrections: !!(result.corrections as any)?.length,
+        hasMatches: !!(result.matches as any)?.length,
+        corrections: (result.corrections as any)?.map((c: any) => c.code),
+        matches: (result.matches as any)?.map((m: any) => m.code),
       });
 
       return result;

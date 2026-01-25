@@ -119,7 +119,7 @@ router.get('/:slug', async (req, res) => {
  * POST /api/blog
  * Create new blog post (admin only)
  */
-router.post('/', authenticate, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
+router.post('/', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
   try {
     if (!req.user) {
       return res.status(401).json({
@@ -177,7 +177,7 @@ router.post('/', authenticate, requireRole(['admin', 'super_admin']), async (req
  * PUT /api/blog/:id
  * Update blog post (admin only)
  */
-router.put('/:id', authenticate, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
+router.put('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
   try {
     if (!req.user) {
       return res.status(401).json({
@@ -191,7 +191,7 @@ router.put('/:id', authenticate, requireRole(['admin', 'super_admin']), async (r
     
     // Check if post exists
     const existingPost = await prisma.blogPost.findUnique({
-      where: { id }
+      where: { id: id as string }
     });
     
     if (!existingPost) {
@@ -225,7 +225,7 @@ router.put('/:id', authenticate, requireRole(['admin', 'super_admin']), async (r
     }
     
     const post = await prisma.blogPost.update({
-      where: { id },
+      where: { id: id as string },
       data: updateData,
       include: {
         author: {
@@ -254,12 +254,12 @@ router.put('/:id', authenticate, requireRole(['admin', 'super_admin']), async (r
  * DELETE /api/blog/:id
  * Delete blog post (admin only)
  */
-router.delete('/:id', authenticate, requireRole(['admin', 'super_admin']), async (req: AuthRequest, res) => {
+router.delete('/:id', authenticate, requireRole('admin'), async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     
     const existingPost = await prisma.blogPost.findUnique({
-      where: { id }
+      where: { id: id as string }
     });
     
     if (!existingPost) {
@@ -270,7 +270,7 @@ router.delete('/:id', authenticate, requireRole(['admin', 'super_admin']), async
     }
     
     await prisma.blogPost.delete({
-      where: { id }
+      where: { id: id as string }
     });
     
     res.json({

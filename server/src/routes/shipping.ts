@@ -153,7 +153,7 @@ router.post('/rates', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch shipping rates',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? (error as any).message : undefined
     });
   }
 });

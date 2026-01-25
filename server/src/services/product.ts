@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma';
-import { ProductCategory, PackageSize } from '@prisma/client';
+import { ProductCategory, PackageSize } from '../types/prisma-types';
 import { initializeInventory } from './inventory';
 
 export interface CreateProductData {
@@ -308,7 +308,7 @@ export async function permanentlyDeleteProduct(id: string) {
  * Bulk update products
  */
 export async function bulkUpdateProducts(updates: Array<{ id: string; data: UpdateProductData }>) {
-  const results = [];
+  const results: any[] = [];
 
   for (const update of updates) {
     try {

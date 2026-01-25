@@ -120,7 +120,7 @@ router.get('/:productSku', async (req, res) => {
     const { productSku } = req.params;
     
     const product = await prisma.product.findUnique({
-      where: { sku: productSku },
+      where: { sku: productSku as string },
       select: {
         id: true,
         sku: true,
@@ -169,7 +169,7 @@ router.get('/:productSku/reviews', async (req, res) => {
     
     // Find product by SKU
     const product = await prisma.product.findUnique({
-      where: { sku: productSku },
+      where: { sku: productSku as string },
       select: { id: true }
     });
 
@@ -182,7 +182,7 @@ router.get('/:productSku/reviews', async (req, res) => {
 
     // Get reviews from database
     const reviews = await prisma.review.findMany({
-      where: { productSku: productSku, approved: true },
+      where: { productSku: productSku as string, approved: true },
       include: {
         user: {
           select: {
@@ -212,7 +212,7 @@ router.get('/:productSku/reviews', async (req, res) => {
 
     // Get review statistics
     const reviewStats = await prisma.review.aggregate({
-      where: { productSku: productSku, approved: true },
+      where: { productSku: productSku as string, approved: true },
       _avg: { rating: true },
       _count: { id: true }
     });
@@ -254,7 +254,7 @@ router.post('/:productSku/reviews', authenticate, async (req: AuthRequest, res) 
 
     // Find product by SKU
     const product = await prisma.product.findUnique({
-      where: { sku: productSku },
+      where: { sku: productSku as string },
       select: { id: true, name: true }
     });
 
@@ -268,7 +268,7 @@ router.post('/:productSku/reviews', authenticate, async (req: AuthRequest, res) 
     // Check if user already reviewed this product
     const existingReview = await prisma.review.findFirst({
       where: {
-        productSku: productSku,
+        productSku: productSku as string,
         userId: req.user.id
       }
     });
@@ -294,7 +294,7 @@ router.post('/:productSku/reviews', authenticate, async (req: AuthRequest, res) 
     // Create the review
     const review = await prisma.review.create({
       data: {
-        productSku: productSku,
+        productSku: productSku as string,
         userId: req.user.id,
         rating: validatedData.rating,
         title: validatedData.title,
@@ -320,8 +320,8 @@ router.post('/:productSku/reviews', authenticate, async (req: AuthRequest, res) 
       isVerifiedPurchase: review.verified,
       createdAt: review.createdAt.toISOString(),
       user: {
-        firstName: review.user?.firstName || 'Anonymous',
-        lastName: review.user?.lastName
+        firstName: (review as any).user?.firstName || 'Anonymous',
+        lastName: (review as any).user?.lastName
       }
     };
 

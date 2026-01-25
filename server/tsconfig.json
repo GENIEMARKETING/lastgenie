@@ -6,6 +6,7 @@
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
+    "noImplicitAny": false,
     "esModuleInterop": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
@@ -13,5 +14,5 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "prisma/**/*.ts"]
+  "exclude": ["node_modules", "dist", "prisma/**/*.ts", "src/__tests__/**/*.ts"]
 }

@@ -82,7 +82,7 @@ router.get('/', async (req, res) => {
     // Format testimonials with relative dates and anonymized user names
     const formattedTestimonials = reviews.map(review => ({
       id: review.id,
-      userName: `${review.user.firstName} ${review.user.lastName?.charAt(0) || ''}.`,
+      userName: `${review.user?.firstName || 'Anonymous'} ${review.user?.lastName?.charAt(0) || ''}.`,
       rating: review.rating,
       title: review.title,
       body: review.content,

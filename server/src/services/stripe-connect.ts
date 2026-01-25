@@ -279,7 +279,8 @@ export async function handleTransferWebhook(
   event: Stripe.Event
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    switch (event.type) {
+    const eventType = event.type as string;
+    switch (eventType) {
       case 'transfer.created':
         // Transfer was created successfully
         break;

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { requireAdminRead, requireAdminWrite, requireAdminDelete } from '../../middleware/adminAuth';
 import { prisma } from '../../lib/prisma';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../../types/prisma-types';
 
 const router = express.Router();
 
@@ -172,7 +172,7 @@ router.get('/:id', ...requireAdminRead('users'), async (req, res) => {
     const { id } = req.params;
 
     const user = await prisma.user.findUnique({
-      where: { id },
+      where: { id: id as string },
       include: {
         orders: {
           select: {
@@ -189,7 +189,7 @@ router.get('/:id', ...requireAdminRead('users'), async (req, res) => {
           select: {
             id: true,
             rating: true,
-            comment: true,
+            content: true,
             createdAt: true,
             product: {
               select: {
@@ -283,7 +283,7 @@ router.post('/', ...requireAdminWrite('users'), async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Invalid input data',
-        details: error.errors
+        details: error.issues
       });
     }
 
@@ -306,7 +306,7 @@ router.put('/:id', ...requireAdminWrite('users'), async (req, res) => {
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
-      where: { id }
+      where: { id: id as string }
     });
 
     if (!existingUser) {
@@ -332,7 +332,7 @@ router.put('/:id', ...requireAdminWrite('users'), async (req, res) => {
 
     // Update user
     const updatedUser = await prisma.user.update({
-      where: { id },
+      where: { id: id as string },
       data: validatedData,
       select: {
         id: true,
@@ -355,7 +355,7 @@ router.put('/:id', ...requireAdminWrite('users'), async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Invalid input data',
-        details: error.errors
+        details: error.issues
       });
     }
 
@@ -378,7 +378,7 @@ router.post('/:id/promote', ...requireAdminWrite('users'), async (req, res) => {
 
     // Check if user exists
     const user = await prisma.user.findUnique({
-      where: { id }
+      where: { id: id as string }
     });
 
     if (!user) {
@@ -390,7 +390,7 @@ router.post('/:id/promote', ...requireAdminWrite('users'), async (req, res) => {
 
     // Update user role
     const updatedUser = await prisma.user.update({
-      where: { id },
+      where: { id: id as string },
       data: { role: validatedData.role },
       select: {
         id: true,
@@ -412,7 +412,7 @@ router.post('/:id/promote', ...requireAdminWrite('users'), async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Invalid input data',
-        details: error.errors
+        details: error.issues
       });
     }
 
@@ -434,7 +434,7 @@ router.delete('/:id', ...requireAdminDelete('users'), async (req, res) => {
 
     // Check if user exists
     const user = await prisma.user.findUnique({
-      where: { id }
+      where: { id: id as string }
     });
 
     if (!user) {
@@ -454,7 +454,7 @@ router.delete('/:id', ...requireAdminDelete('users'), async (req, res) => {
 
     // Soft delete by updating email to mark as deleted
     const deletedUser = await prisma.user.update({
-      where: { id },
+      where: { id: id as string },
       data: {
         email: `deleted_${Date.now()}_${user.email}`,
         firstName: 'Deleted',
