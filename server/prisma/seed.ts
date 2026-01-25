@@ -1,76 +1,32 @@
 import { PrismaClient, ProductCategory, PackageSize, UserRole } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
-import path from 'path';
-import fs from 'fs';
+import dotenv from 'dotenv';
 
-// Database-agnostic connection setup
-const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db';
+// Load environment variables from .env file
+dotenv.config();
 
-// Ensure DATABASE_URL is set in environment for Prisma's internal use
+// Ensure DATABASE_URL is available
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = databaseUrl;
+  throw new Error('DATABASE_URL environment variable is required');
 }
-
-// Detect database type from DATABASE_URL
-const isPostgreSQL = databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://');
 
 console.log('Seed - Database configuration:', {
-  originalUrl: databaseUrl,
-  databaseType: isPostgreSQL ? 'PostgreSQL' : 'SQLite',
+  hasUrl: !!process.env.DATABASE_URL,
+  urlPrefix: process.env.DATABASE_URL?.substring(0, 20) + '...',
+  databaseType: 'PostgreSQL',
 });
 
-// Create database-specific Prisma client
-async function createPrismaClient(): Promise<PrismaClient> {
-  if (isPostgreSQL) {
-    // PostgreSQL configuration (production)
-    console.log('🐘 Using PostgreSQL adapter...');
-    const { PrismaPg } = await import('@prisma/adapter-pg');
-    
-    const adapter = new PrismaPg({
-      connectionString: databaseUrl,
-    });
+// Create PostgreSQL Prisma client
+console.log('🐘 Using PostgreSQL adapter...');
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+});
 
-    return new PrismaClient({
-      adapter,
-      log: ['query', 'error', 'warn'],
-    });
-  } else {
-    // SQLite configuration (development)
-    console.log('🗄️ Using SQLite adapter...');
-    const { PrismaBetterSqlite3 } = await import('@prisma/adapter-better-sqlite3');
-    
-    let dbPath = databaseUrl.replace('file:', '');
-
-    // Resolve relative paths relative to server directory
-    if (!path.isAbsolute(dbPath)) {
-      // Resolve from the current working directory (server folder)
-      dbPath = path.resolve(process.cwd(), dbPath);
-    }
-
-    console.log('SQLite - Database path:', {
-      resolvedPath: dbPath,
-      isAbsolute: path.isAbsolute(dbPath),
-      exists: fs.existsSync(dbPath),
-    });
-
-    // Create absolute URL for adapter (use absolute path)
-    const absoluteDatabaseUrl = `file:${dbPath}`;
-
-    // Ensure DATABASE_URL is set with absolute path for adapter's internal use
-    process.env.DATABASE_URL = absoluteDatabaseUrl;
-
-    const adapter = new PrismaBetterSqlite3({
-      url: absoluteDatabaseUrl,
-    });
-
-    return new PrismaClient({
-      adapter,
-      log: ['query', 'error', 'warn'],
-    });
-  }
-}
-
-const prisma = await createPrismaClient();
+const prisma = new PrismaClient({
+  adapter,
+  log: ['query', 'error', 'warn'],
+});
 
 async function main() {
   console.log('🌱 Starting database seeding...');
