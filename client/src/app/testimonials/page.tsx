@@ -5,6 +5,9 @@ import { StarRating } from '@/components/reviews/star-rating';
 import { Button } from '@/components/ui/button';
 import { CheckCircle } from 'lucide-react';
 
+// API URL for backend requests
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 interface Review {
   id: string;
   rating: number;
@@ -67,7 +70,7 @@ export default function TestimonialsPage() {
         ...(filter !== 'all' && { rating: filter })
       });
       
-      const response = await fetch(`/api/reviews/all?${params}`);
+      const response = await fetch(`${API_URL}/api/reviews/all?${params}`);
       const data: ReviewsResponse = await response.json();
       
       setReviews(data.reviews);
