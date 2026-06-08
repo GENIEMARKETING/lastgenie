@@ -1,0 +1,33 @@
+# ⚠️ TEMP allowlist for KNOWN, pre-existing committed secrets — PENDING ROTATION.
+# Vinny rotates all keys at the end (sessions/HANDOFFS.md → "Rotate leaked secrets").
+# AFTER rotation: REMOVE the "TEMP (pending rotation)" path(s) below (and scrub history)
+# so future leaks in these files are caught again. Until then they are allowlisted so CI
+# is green per "configure the workflow for all projects first, rotate last".
+title = "agency-org-shared"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "strapi-app-keys"
+description = "Strapi APP_KEYS / JWT secrets"
+regex = '''(?i)(STRAPI_(APP_KEYS|JWT_SECRET|ADMIN_JWT_SECRET|API_TOKEN_SALT|TRANSFER_TOKEN_SALT))\s*[:=]\s*['"]?[A-Za-z0-9+/]{16,}'''
+
+[[rules]]
+id = "medusa-secrets"
+description = "Medusa JWT / cookie secrets"
+regex = '''(?i)(MEDUSA_(JWT_SECRET|COOKIE_SECRET))\s*[:=]\s*['"]?[A-Za-z0-9+/]{16,}'''
+
+[[rules]]
+id = "postgres-url-with-password"
+description = "Postgres connection string with inline password"
+regex = '''postgres(ql)?://[^:@\s]+:[^@\s]{6,}@'''
+
+[allowlist]
+description = "Org placeholders/encrypted + TEMP known-secret paths pending rotation"
+regexes = ['''__CHANGE_ME__''', '''__KEY[0-9]__''', '''local-proof-only''']
+paths = [
+  '''\.env\.example$''',
+  '''.*\.enc\.env$''',
+  '''SETUP-GUIDE\.md$''',
+]
