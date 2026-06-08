@@ -30,6 +30,4 @@ paths = [
   '''\.env\.example$''',
   '''.*\.enc\.env$''',
   '''SETUP-GUIDE\.md$''',
-  # --- TEMP (pending rotation) — REMOVE after Vinny rotates the keys ---
-  '''server/.*cookies\.txt''',
 ]
