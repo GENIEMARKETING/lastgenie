@@ -1,0 +1,17 @@
+# Known, pre-existing committed secrets — ACCEPTED *PENDING ROTATION* (Vinny rotates last).
+# Each line is a gitleaks fingerprint (commit:file:rule:line) — this file IS the rotation checklist.
+# As each secret is rotated + purged, delete its line so gitleaks catches regressions again.
+# Tracked in sessions/HANDOFFS.md → 'Rotate leaked secrets'.
+206bef6855ab104571a1bafda5a945548dbf8232:DEPLOYMENT_GUIDE.md:postgres-url-with-password:73
+206bef6855ab104571a1bafda5a945548dbf8232:deploy-backend.sh:postgres-url-with-password:53
+206bef6855ab104571a1bafda5a945548dbf8232:deploy-ssl-production.sh:postgres-url-with-password:165
+206bef6855ab104571a1bafda5a945548dbf8232:fix-database-ssl.sh:postgres-url-with-password:19
+206bef6855ab104571a1bafda5a945548dbf8232:quick-deploy.sh:postgres-url-with-password:23
+206bef6855ab104571a1bafda5a945548dbf8232:user-data-script.sh:postgres-url-with-password:45
+a6432baf96cded64c12e6d0c6e3a8448f223904d:docs/development/project-readme.md:postgres-url-with-password:202
+a6432baf96cded64c12e6d0c6e3a8448f223904d:docs/development/project-readme.md:postgres-url-with-password:203
+a6432baf96cded64c12e6d0c6e3a8448f223904d:server/cookies.txt:jwt:5
+a6432baf96cded64c12e6d0c6e3a8448f223904d:server/cookies.txt:jwt:6
+a6432baf96cded64c12e6d0c6e3a8448f223904d:server/customer_cookies.txt:jwt:5
+a6432baf96cded64c12e6d0c6e3a8448f223904d:server/customer_cookies.txt:jwt:6
+a6432baf96cded64c12e6d0c6e3a8448f223904d:server/env.example:postgres-url-with-password:15
