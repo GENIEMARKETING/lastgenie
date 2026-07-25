@@ -18,8 +18,8 @@
     "next": "16.1.4",
     "next-mdx-remote": "^5.0.0",
     "picocolors": "^1.1.1",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
     "rehype-raw": "^7.0.0"
